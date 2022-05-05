@@ -76,7 +76,7 @@ function registerPSFs(stack, ref_im)
     return yi_reg, si
 end
 
-function decompose(yi_reg, si, rnk)
+function decompose(yi_reg, rnk)
     Ny, Nx, Mgood = size(yi_reg)
     println("Creating matrix")
     ymat = reshape(yi_reg, (Ny * Nx, Mgood))
@@ -163,7 +163,7 @@ function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) wh
     end
     psfs_reg, shifts =
         SpatiallyVaryingConvolution.registerPSFs(psfs[:, :, :], psfs[:, :, ref_image_index])
-    comps, weights = decompose(psfs_reg, shifts, rank)
+    comps, weights = decompose(psfs_reg, rank)
     weights_interp = interpolate_weights(weights, size(comps)[1:2], shifts)
     norms = zeros(size(comps)[1:2])
     sums_of_comps = [sum(comps[:, :, i]) for i = 1:rank]
