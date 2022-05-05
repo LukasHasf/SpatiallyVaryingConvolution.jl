@@ -76,7 +76,7 @@ function registerPSFs(stack, ref_im)
     return yi_reg, si
 end
 
-function calcSVD(yi_reg, si, rnk)
+function decompose(yi_reg, si, rnk)
     Ny, Nx, Mgood = size(yi_reg)
     println("Creating matrix")
     ymat = reshape(yi_reg, (Ny * Nx, Mgood))
@@ -87,6 +87,12 @@ function calcSVD(yi_reg, si, rnk)
     comps = reshape(Z.U, (Ny, Nx, rnk))
     weights = Array{Float64,2}(undef, (Mgood, rnk))
     mul!(weights, Z.V, LinearAlgebra.Diagonal(Z.S))
+    return comps, weights
+end
+
+function interpolate_weights(weights, shape, si)
+    Ny, Nx = shape
+    rnk = size(weights)[2]
 
     xq = -Nx/2:(Nx-1)/2
     yq = (-Ny/2:(Ny-1)/2)'
@@ -99,11 +105,12 @@ function calcSVD(yi_reg, si, rnk)
     println("Interpolating...")
     weights_interp = Array{Float64,3}(undef, (Ny, Nx, rnk))
     points = Float64.([xi yi]')
+    itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r = 1:rnk
-        itp = ScatteredInterpolation.interpolate(NearestNeighbor(), points, weights[:,r])
+        itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:,r])
         weights_interp[:, :, r] .= reshape(evaluate(itp, gridPoints), (Nx, Ny))'
     end
-    return comps, weights_interp
+    return weights_interp
 end
 
 function pad2D(x)
@@ -156,7 +163,8 @@ function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) wh
     end
     psfs_reg, shifts =
         SpatiallyVaryingConvolution.registerPSFs(psfs[:, :, :], psfs[:, :, ref_image_index])
-    comps, weights_interp = calcSVD(psfs_reg, shifts, rank)
+    comps, weights = decompose(psfs_reg, shifts, rank)
+    weights_interp = interpolate_weights(weights, size(comps)[1:2], shifts)
     norms = zeros(size(comps)[1:2])
     sums_of_comps = [sum(comps[:, :, i]) for i = 1:rank]
     for x = 1:size(norms)[2]
