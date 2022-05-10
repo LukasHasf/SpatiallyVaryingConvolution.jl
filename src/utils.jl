@@ -5,13 +5,12 @@ export readPSFs, pad2D, crop2D
 
 Read the PSFs stored in file `path` accessible as field `key`. 
 Supports MAT and HDF5 file format. 
-PSFs are expected to be stored as an array at `key` having shape
- (Ny, Nx, nrPSFs) in the 2D case or (Ny, Nx, nrPSFs, Nz) in the 3D case.
+
  # Examples
  ```
  julia> readPSFs("myPSFs.mat", "PSFs")
  ```
- 
+
  ```
  julia> readPSFs("myPSFs.h5", "myPSFsDataset")
  ```
