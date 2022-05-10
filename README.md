@@ -9,8 +9,6 @@ julia> ] add https://github.com/LukasHasf/SpatiallyVaryingConvolution.jl
 
 ## Quickstart guide
 
-### Loading your PSFs
-
 This package provides an utility function `readPSFs(path, key)` that loads the PSFs from a MATLAB or HDF5 file at `path`. Both file structures support storing objects accessible by a `key`, which should be passed to the function as well. 
 The following process expects the PSFs to have shape `(Ny, Nx, nrPSFs)` (2D) or `(Ny, Nx, nrPSFs, Nz)` (3D), where `Nx, Ny` is the pixel size of the microscope image, `nrPSFs` is the amount of PSFs recorded at each depth level and `Nz` is the amount of depth levels.
 
