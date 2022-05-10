@@ -46,7 +46,6 @@ function registerPSFs(stack, ref_im)
 
     si = zeros((2, M))
     # Do FFT registration
-    println("Registering")
     good_count = 0
     dummy_for_plan = Array{eltype(stack_dct),2}(undef, (2 * Ny, 2 * Nx))
     plan = plan_rfft(dummy_for_plan)
@@ -69,7 +68,6 @@ function registerPSFs(stack, ref_im)
         good_count += 1
     end
     yi_reg = yi_reg[:, :, 1:good_count]
-    println("Done registering")
     return yi_reg, si
 end
 
@@ -84,11 +82,8 @@ to be smaller than `nrPSFs`.
 """
 function decompose(yi_reg, rnk)
     Ny, Nx, Mgood = size(yi_reg)
-    println("Creating matrix")
     ymat = reshape(yi_reg, (Ny * Nx, Mgood))
-    println("Done")
 
-    println("Starting SVD...")
     Z = svds(ymat; nsv = rnk)[1]
     comps = reshape(Z.U, (Ny, Nx, rnk))
     weights = Array{Float64,2}(undef, (Mgood, rnk))
@@ -113,7 +108,6 @@ function interpolate_weights(weights, shape, si)
     xi = -si[2, :]
     yi = -si[1, :]
 
-    println("Interpolating...")
     weights_interp = Array{Float64,3}(undef, (Ny, Nx, rnk))
     points = Float64.([xi yi]')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
