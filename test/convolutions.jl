@@ -15,7 +15,7 @@
         rank = nrPSFs-1
         psfs = zeros(Float64, Ny, Nx, nrPSFs)
         psfs[Ny÷2+1, Nx÷2+1, :] .= 1
-        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
+        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
         input_image_padded = SpatiallyVaryingConvolution.pad2D(input_image)
@@ -37,7 +37,7 @@
         for shift_index in 1:nrPSFs
             psfs[(center .+ shifts[:, shift_index])...,shift_index] = one(Float64)
         end
-        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
+        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
         input_image_padded = SpatiallyVaryingConvolution.pad2D(input_image)
@@ -62,7 +62,7 @@
             psfs[center[1] + shifts[1, shift_index]-1, center[1] + shifts[1, shift_index], shift_index] = one(Float64)/4
             psfs[center[1] + shifts[1, shift_index], center[1] + shifts[1, shift_index]+1, shift_index] = one(Float64)/4
         end
-        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
+        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = zeros(Float64, Ny, Nx)
         input_image[Ny÷2+1, Nx÷2+1] = 1.0
         input_image_padded = SpatiallyVaryingConvolution.pad2D(input_image)

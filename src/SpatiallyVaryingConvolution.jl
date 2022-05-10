@@ -7,7 +7,7 @@ using FFTW
 using Arpack, LinearAlgebra
 using ScatteredInterpolation
 
-export generate_model, readPSFs
+export generateModel, readPSFs
 """
     registerPSFs(stack, ref_im)
 
@@ -38,7 +38,6 @@ function registerPSFs(stack, ref_im)
     ref_norm = norm(ref_im) # norm of ref_im
 
     # Normalize the stack
-    #div.(stack, ref_norm)
     for m = 1:M
         stack_dct[:, :, m] ./= norm(stack_dct[:, :, m])
     end
@@ -62,7 +61,6 @@ function registerPSFs(stack, ref_im)
 
         si[:, good_count+1] .= [1 + pr - r, 1 + pc - c]
 
-        #im_reg = ref_norm .* circshift(stack[:, :, m], si[:, good_count+1])
         im_reg = circshift(stack[:, :, m], si[:, good_count+1])
         yi_reg[:, :, good_count+1] = im_reg
         good_count += 1
@@ -96,7 +94,7 @@ end
 
 Interpolate `weights` defined at positions `si` onto a grid of size `shape`.
 """
-function interpolate_weights(weights, shape, si)
+function interpolateWeights(weights, shape, si)
     Ny, Nx = shape
     rnk = size(weights)[2]
 
@@ -128,7 +126,7 @@ Expects `H` to be a stack of Fourier-transformed and padded spatially invariant 
 `padded_weights` to be the zero-padded weight of each kernel at each (x,y)-coordinate and
 `crop_indices` the indices to use for cropping after the padded convolution.
 """
-function create_forwardmodel(H::Array{T, 3}, padded_weights, crop_indices) where T
+function createForwardmodel(H::Array{T, 3}, padded_weights, crop_indices) where T
     # The size of all buffers is the size of the padded_weights
     size_x = size(padded_weights)[1:2]
     # X holds the FT of the weighted image
@@ -170,7 +168,7 @@ Construct the forward model using the PSFs in ```psfs``` employing an interpolat
 ```ref_image_index``` is the index of the reference PSF along dim 3 of ```psfs```. 
  Default: ```ref_image_index = size(psfs)[end] ÷ 2 + 1```
 """
-function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) where T
+function generateModel(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) where T
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
@@ -178,7 +176,7 @@ function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) wh
     psfs_reg, shifts =
         SpatiallyVaryingConvolution.registerPSFs(psfs[:, :, :], psfs[:, :, ref_image_index])
     comps, weights = decompose(psfs_reg, rank)
-    weights_interp = interpolate_weights(weights, size(comps)[1:2], shifts)
+    weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts)
     norms = zeros(size(comps)[1:2])
     sums_of_comps = [sum(comps[:, :, i]) for i = 1:rank]
     for x = 1:size(norms)[2]
@@ -200,7 +198,7 @@ function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) wh
     H = rfft(pad2D(h), [1,2])
     flatfield = pad2D(ones(Float64, (Ny,Nx)))
     padded_weights = pad2D(weights_interp)
-    model = SpatiallyVaryingConvolution.create_forwardmodel(
+    model = SpatiallyVaryingConvolution.createForwardmodel(
         H,
         padded_weights,
         [rcL, rcU, ccL, ccU]
@@ -214,9 +212,9 @@ function generate_model(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) wh
     return svc_model
 end
 
-function generate_model(psfs_path::String, psf_name::String,rank::Int, ref_image_index::Int=-1)
+function generateModel(psfs_path::String, psf_name::String,rank::Int, ref_image_index::Int=-1)
     psfs = readPSFs(psfs_path, psf_name)
-    return generate_model(psfs, rank, ref_image_index)
+    return generateModel(psfs, rank, ref_image_index)
 end
 
 end # module
