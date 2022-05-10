@@ -1,6 +1,6 @@
 # SpatiallyVaryingConvolution.jl
 
-This package contains utilities to simulate imaging a sample with an optical device with a spatially varying point spread function (PSF). It implements the field+varying forward model described in [[1]](Cit1).
+This package contains utilities to simulate imaging a sample with an optical device with a spatially varying point spread function (PSF). It implements the field+varying forward model described in [[1]](#Sources).
 
 ## Installation
 ```julia
@@ -40,4 +40,4 @@ julia> convolved_image = forwardModel(image_to_convolve)
 
 ## Sources
 
-<a id="Cit1"></a>[1] : Yanny, K., Antipa, N., Liberti, W., Dehaeck, S., Monakhova, K., Liu, F. L., Shen, K., Ng, R., & Waller, L. (2020). Miniscope3D: optimized single-shot miniature 3D fluorescence microscopy. In Light: Science &amp; Applications (Vol. 9, Issue 1). Springer Science and Business Media LLC. https://doi.org/10.1038/s41377-020-00403-7 
+[1] : Yanny, K., Antipa, N., Liberti, W., Dehaeck, S., Monakhova, K., Liu, F. L., Shen, K., Ng, R., & Waller, L. (2020). Miniscope3D: optimized single-shot miniature 3D fluorescence microscopy. In Light: Science &amp; Applications (Vol. 9, Issue 1). Springer Science and Business Media LLC. https://doi.org/10.1038/s41377-020-00403-7 
