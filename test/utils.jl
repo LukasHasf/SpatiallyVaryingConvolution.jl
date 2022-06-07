@@ -2,11 +2,11 @@
     @testset "Test padding/unpadding" begin
         Ny, Nx = 100, 101
         x = rand(Float64, Ny, Nx)
-        @test unpad2D(padND(x,  2), Ny, Nx) == x
+        @test unpad(padND(x,  2), Ny, Nx) == x
 
         Ny, Nx = 101, 100
         x = rand(Float64, Ny, Nx)
-        @test unpad2D(padND(x, 2), Ny, Nx) == x
+        @test unpad(padND(x, 2), Ny, Nx) == x
 
         @test size(padND(x, 2)) == 2 .* size(x)
 
@@ -16,11 +16,11 @@
 
         Ny, Nx, Nz = 100, 101, 40
         x = rand(Float64, Ny, Nx, Nz)
-        @test unpad3D(padND(x, 3), Ny, Nx, Nz) == x
+        @test unpad(padND(x, 3), Ny, Nx, Nz) == x
 
         Ny, Nx, Nz = 101, 100, 39
         x = rand(Float64, Ny, Nx, Nz)
-        @test unpad3D(padND(x, 3), Ny, Nx, Nz) == x
+        @test unpad(padND(x, 3), Ny, Nx, Nz) == x
 
         @test size(padND(x, 3)) == 2 .* size(x)
 
