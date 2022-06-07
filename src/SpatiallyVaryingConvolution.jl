@@ -81,17 +81,18 @@ end
 
 Calculate the SVD of a collection of PSFs `yi_reg` with reduced rank `rnk`.
 
-`yi_reg` is expected to have shape `(Ny, Nx, nrPSFs)`. Returns the `rnk`
+`yi_reg` is expected to have shape `(Ny, Nx, nrPSFs)`/`(Ny, Nx, Nz, nrPSFs)`. Returns the `rnk`
 components and the weights to reconstruct the original PSFs. `rnk` needs 
 to be smaller than `nrPSFs`.
 """
-function decompose(yi_reg, rnk)
-    Ny, Nx, Mgood = size(yi_reg)
-    ymat = reshape(yi_reg, (Ny * Nx, Mgood))
+function decompose(yi_reg::Array{T, N}, rnk) where {T,N}
+    Ns = size(yi_reg)[1:N-1]
+    nrPSFs = size(yi_reg)[end]
+    ymat = reshape(yi_reg, (prod(Ns), nrPSFs))
 
     Z = svds(ymat; nsv = rnk)[1]
-    comps = reshape(Z.U, (Ny, Nx, rnk))
-    weights = Array{Float64,2}(undef, (Mgood, rnk))
+    comps = reshape(Z.U, (Ns..., rnk))
+    weights = Array{Float64,2}(undef, (nrPSFs, rnk))
     mul!(weights, Z.V, LinearAlgebra.Diagonal(Z.S))
     return comps, weights
 end
