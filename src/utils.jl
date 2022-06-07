@@ -46,7 +46,3 @@ function unpad2D(x, Ny, Nx)
     rcU = upperIndex(Ny)
     return x[rcL:rcU, ccL:ccU]
 end
-
-function crop2D(x, rcL, rcU, ccL, ccU)
-    return x[rcL:rcU, ccL:ccU]
-end
