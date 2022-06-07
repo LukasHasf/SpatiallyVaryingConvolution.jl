@@ -199,34 +199,49 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
-function generateModel(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) where T
+function generateModel(psfs::Array{T, N},rank::Int, ref_image_index::Int=-1) where {T, N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
+    ND = ndims(psfs)
     psfs_reg, shifts =
-        SpatiallyVaryingConvolution.registerPSFs(psfs[:, :, :], psfs[:, :, ref_image_index])
-    comps, weights = decompose(psfs_reg, rank)
-    weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts)
-    norms = zeros(size(comps)[1:2])
-    sums_of_comps = [sum(comps[:, :, i]) for i = 1:rank]
-    for x = 1:size(norms)[2]
-        for y = 1:size(norms)[1]
-            norms[y, x] = sum(weights_interp[y, x, :] .* sums_of_comps)
+        SpatiallyVaryingConvolution.registerPSFs(psfs, collect(selectdim(psfs, N, ref_image_index)))
+    if N==4 && any(shifts[3, :] .!= zero(Int))
+        # If PSFs are shifted in z, decomposition and interpolation have to be done z-slice weights_interp
+        comps = Array{Float64, 4}(undef, size(psfs_reg)...)
+        weights_interp = similar(comps)
+        for i in 1:size(psfs_reg, 3)
+            temp_comps, weights = decompose(psfs_reg[:, :, i, :], rank)
+            weights_interp[:, :, i, :] .= interpolateWeights(weights, size(comps)[1:2], shifts)
+            comps[:, :, i, :] .= temp_comps
+        end
+    else
+        comps, weights = decompose(psfs_reg, rank)
+        weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :])
+        if N==4
+            # Repeat x-y interpolated weights Nz times 
+            weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
+            # Reshape to (Ny, Nx, Nz, rank)
+            weights_interp = permutedims(weights_interp, [1, 2, 4, 3])
         end
     end
-    weights_interp ./= norms
-    # Normalize components
-    h = comps ./ sqrt.(sum(abs2.(comps)))
-    # padded values for 2D
-    Ny, Nx = size(comps)[1:2]
-    H = rfft(padND(h, 2), [1,2])
-    flatfield = padND(ones(Float64, (Ny,Nx)), 2)
-    padded_weights = padND(weights_interp, 2)
+
+    Ns = size(comps)[1:(ND-1)]
+    #= TODO: Normalization of h  and weights_interp
+        - PSFs at every location should have a sum of 1 (?)
+        - comps is normalized along the rank dimension according to L2 norm=#
+    h = comps
+
+    # padded values
+    
+    H = rfft(padND(h, ND-1), 1:(ND-1))
+    flatfield = padND(ones(Float64, Ns...), ND-1)
+    padded_weights = padND(weights_interp, ND-1)
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H,
         padded_weights,
-        (Ny, Nx)
+        tuple(Ns...)
     )
     flatfield_sim = model(flatfield)
     svc_model = let flatfield_sim=flatfield_sim, model=model
