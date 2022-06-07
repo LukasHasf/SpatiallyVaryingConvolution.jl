@@ -161,7 +161,7 @@ function createForwardmodel(H::Array{T, 3}, padded_weights, unpadded_size) where
             end
             mul!(buf_irfft_Y, inv_plan, Y)
             ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-            unpad2D(unpadded_size..., buf_ifftshift_y)
+            unpad2D(buf_ifftshift_y, unpadded_size...)
         end
     end
     return forward

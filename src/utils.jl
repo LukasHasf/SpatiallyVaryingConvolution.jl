@@ -39,7 +39,7 @@ function upperIndex(N)
     return Bool(N % 2) ?  3*N÷2 +1 : 3*N÷2
 end
 
-function unpad2D(Ny, Nx, x)
+function unpad2D(x, Ny, Nx)
     ccL = lowerIndex(Nx)
     ccU = upperIndex(Nx)
     rcL = lowerIndex(Ny)
