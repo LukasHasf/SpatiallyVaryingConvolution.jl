@@ -24,7 +24,7 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
     Ns .= size(stack)[1:end-1]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
-    pad_function = N == 3 ? pad2D : pad3D
+    pad_function = x -> padND(x, ND-1)
 
     function crossCorr(
             x::Array{ComplexF64},
@@ -257,9 +257,9 @@ function generateModel(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) whe
     h = comps ./ sqrt.(sum(abs2.(comps)))
     # padded values for 2D
     Ny, Nx = size(comps)[1:2]
-    H = rfft(pad2D(h), [1,2])
-    flatfield = pad2D(ones(Float64, (Ny,Nx)))
-    padded_weights = pad2D(weights_interp)
+    H = rfft(padND(h, 2), [1,2])
+    flatfield = padND(ones(Float64, (Ny,Nx)), 2)
+    padded_weights = padND(weights_interp, 2)
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H,
         padded_weights,
