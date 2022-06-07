@@ -1,5 +1,4 @@
-using MAT, HDF5
-export readPSFs, padND, unpad2D, unpad3D
+export readPSFs, padND, unpad
 """    
     readPSFs(path::String, key::String)
 
@@ -43,20 +42,9 @@ function upperIndex(N)
     return Bool(N % 2) ?  3*N÷2 +1 : 3*N÷2
 end
 
-function unpad2D(x, Ny, Nx)
-    ccL = lowerIndex(Nx)
-    ccU = upperIndex(Nx)
-    rcL = lowerIndex(Ny)
-    rcU = upperIndex(Ny)
-    return x[rcL:rcU, ccL:ccU]
-end
-
-function unpad3D(x, Ny, Nx, Nz)
-    ccL = lowerIndex(Nx)
-    ccU = upperIndex(Nx)
-    rcL = lowerIndex(Ny)
-    rcU = upperIndex(Ny)
-    dcL = lowerIndex(Nz)
-    dcU = upperIndex(Nz)
-    return x[rcL:rcU, ccL:ccU, dcL:dcU]
+function unpad(x, Ns...)
+    low_inds = [lowerIndex(N) for N in Ns]
+    upp_inds = [upperIndex(N) for N in Ns]
+    selection = [low_inds[i]:upp_inds[i] for i in eachindex(Ns)]
+    return x[selection...]
 end
