@@ -1,5 +1,5 @@
 using MAT, HDF5
-export readPSFs, pad2D, unpad2D, pad3D, unpad3D
+export readPSFs, padND, unpad2D, unpad3D
 """    
     readPSFs(path::String, key::String)
 
@@ -27,20 +27,12 @@ function readPSFs(path::String, key::String)
     end
 end
 
-"""    pad2D(x)
+"""    padND(x, n)
 
-Pad `x` along the first two dimensions with `0` to twice its size.
+Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
-function pad2D(x)
-    return select_region(x, new_size=2 .* size(x)[1:2], pad_value=zero(eltype(x)))
-end
-
-"""    pad3D(x)
-
-Pad `x` along the first three dimensions with `0` to twice its size.
-"""
-function pad3D(x)
-    return select_region(x, new_size=2 .* size(x)[1:3], pad_value=zero(eltype(x)))
+function padND(x, n)
+    return select_region(x, new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
 function lowerIndex(N)
