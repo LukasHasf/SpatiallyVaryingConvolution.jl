@@ -27,8 +27,20 @@ function readPSFs(path::String, key::String)
     end
 end
 
+"""    pad2D(x)
+
+Pad `x` along the first two dimensions with `0` to twice its size.
+"""
 function pad2D(x)
     return select_region(x, new_size=2 .* size(x)[1:2], pad_value=zero(eltype(x)))
+end
+
+"""    pad3D(x)
+
+Pad `x` along the first three dimensions with `0` to twice its size.
+"""
+function pad3D(x)
+    return select_region(x, new_size=2 .* size(x)[1:3], pad_value=zero(eltype(x)))
 end
 
 function lowerIndex(N)
@@ -45,4 +57,14 @@ function unpad2D(x, Ny, Nx)
     rcL = lowerIndex(Ny)
     rcU = upperIndex(Ny)
     return x[rcL:rcU, ccL:ccU]
+end
+
+function unpad3D(x, Ny, Nx, Nz)
+    ccL = lowerIndex(Nx)
+    ccU = upperIndex(Nx)
+    rcL = lowerIndex(Ny)
+    rcU = upperIndex(Ny)
+    dcL = lowerIndex(Nz)
+    dcU = upperIndex(Nz)
+    return x[rcL:rcU, ccL:ccU, dcL:dcU]
 end
