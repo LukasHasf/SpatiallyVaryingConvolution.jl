@@ -13,5 +13,19 @@
         Nz = 10
         x = rand(Float64, Ny, Nx, Nz)
         @test size(pad2D(x)) == ((2 .* size(x)[1:2])..., Nz)
+
+        Ny, Nx, Nz = 100, 101, 40
+        x = rand(Float64, Ny, Nx, Nz)
+        @test unpad3D(pad3D(x), Ny, Nx, Nz) == x
+
+        Ny, Nx, Nz = 101, 100, 39
+        x = rand(Float64, Ny, Nx, Nz)
+        @test unpad3D(pad3D(x), Ny, Nx, Nz) == x
+
+        @test size(pad3D(x)) == 2 .* size(x)
+
+        nrPSFs = 10
+        x = rand(Float64, Ny, Nx, Nz, nrPSFs)
+        @test size(pad3D(x)) == ((2 .* size(x)[1:3])..., nrPSFs)
     end
 end
