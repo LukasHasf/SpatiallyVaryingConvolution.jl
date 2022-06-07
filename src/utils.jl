@@ -1,5 +1,5 @@
 using MAT, HDF5
-export readPSFs, pad2D, crop2D
+export readPSFs, pad2D, crop2D, unpad2D
 """    
     readPSFs(path::String, key::String)
 
@@ -29,6 +29,22 @@ end
 
 function pad2D(x)
     return select_region(x, new_size=2 .* size(x)[1:2], pad_value=zero(eltype(x)))
+end
+
+function lowerIndex(N)
+    return Bool(N % 2) ? (N+3)÷2 : (N+2)÷2
+end
+
+function upperIndex(N)
+    return Bool(N % 2) ?  3*N÷2 +1 : 3*N÷2
+end
+
+function unpad2D(Ny, Nx, x)
+    ccL = lowerIndex(Nx)
+    ccU = upperIndex(Nx)
+    rcL = lowerIndex(Ny)
+    rcU = upperIndex(Ny)
+    return x[rcL:rcU, ccL:ccU]
 end
 
 function crop2D(x, rcL, rcU, ccL, ccU)

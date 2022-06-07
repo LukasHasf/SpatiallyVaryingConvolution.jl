@@ -125,7 +125,7 @@ function interpolateWeights(weights, shape, si)
 end
 
 """
-    create_forwardmodel(H::Array{T, 3}, padded_weights, crop_indices) where T
+    create_forwardmodel(H::Array{T, 3}, padded_weights, unpadded_size) where T
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
     their padded weights `padded_weights`.
@@ -134,7 +134,7 @@ Expects `H` to be a stack of Fourier-transformed and padded spatially invariant 
 `padded_weights` to be the zero-padded weight of each kernel at each (x,y)-coordinate and
 `crop_indices` the indices to use for cropping after the padded convolution.
 """
-function createForwardmodel(H::Array{T, 3}, padded_weights, crop_indices) where T
+function createForwardmodel(H::Array{T, 3}, padded_weights, unpadded_size) where T
     # The size of all buffers is the size of the padded_weights
     size_x = size(padded_weights)[1:2]
     # X holds the FT of the weighted image
@@ -161,7 +161,7 @@ function createForwardmodel(H::Array{T, 3}, padded_weights, crop_indices) where 
             end
             mul!(buf_irfft_Y, inv_plan, Y)
             ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-            crop2D(buf_ifftshift_y, crop_indices...)
+            unpad2D(unpadded_size..., buf_ifftshift_y)
         end
     end
     return forward
@@ -170,11 +170,11 @@ end
 """
     generate_model(psfs::Array{T,3}, rank::Int[, ref_image_index::Int])
 
-Construct the forward model using the PSFs in ```psfs``` employing an interpolation
- of the first ```rank``` components calculated from a SVD.
+Construct the forward model using the PSFs in `psfs` employing an interpolation
+ of the first `rank` components calculated from a SVD.
 
-```ref_image_index``` is the index of the reference PSF along dim 3 of ```psfs```. 
- Default: ```ref_image_index = size(psfs)[end] ÷ 2 + 1```
+`ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
+ Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generateModel(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) where T
     if ref_image_index == -1
@@ -197,19 +197,13 @@ function generateModel(psfs::Array{T, 3},rank::Int, ref_image_index::Int=-1) whe
     h = comps ./ sqrt.(sum(abs2.(comps)))
     # padded values for 2D
     Ny, Nx = size(comps)[1:2]
-    lower_index(N) = Bool(N % 2) ? (N+3)÷2 : (N+2)÷2
-    upper_index(N) = Bool(N % 2) ?  3*N÷2 +1 : 3*N÷2
-    ccL = lower_index(Nx)
-    ccU = upper_index(Nx)
-    rcL = lower_index(Ny)
-    rcU = upper_index(Ny)
     H = rfft(pad2D(h), [1,2])
     flatfield = pad2D(ones(Float64, (Ny,Nx)))
     padded_weights = pad2D(weights_interp)
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H,
         padded_weights,
-        [rcL, rcU, ccL, ccU]
+        (Ny, Nx)
     )
     flatfield_sim = model(flatfield)
     svc_model = let flatfield_sim=flatfield_sim, model=model
