@@ -14,59 +14,66 @@ export generateModel, readPSFs
 Find the shift between each PSF in `stack` and the reference PSF in `ref_im`
 and return the aligned PSFs and their shifts.
  
-`stack` is expected to have shape `(Ny, Nx, nrPSfs)` and `ref_im` `(Ny, Nx)`.
+If `ref_im` has size `(Ny, Nx)`/`(Ny, Nx, Nz)`, `stack` should have size
+ `(Ny, Nx, nrPSFs)`/`(Ny, Nx, Nz, nrPSFs)`.
 """
-function registerPSFs(stack, ref_im)
-    Ny, Nx, M = size(stack)
+function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
+    @assert N in [3, 4] "stack needs to be a 3d/4d array but was $(N)d"
+    ND = ndims(stack)
+    Ns = Array{Int, 1}(undef, ND-1)
+    Ns .= size(stack)[1:end-1]
+    ps = Ns # Relative centers of all correlations
+    M = size(stack)[end]
+    pad_function = N == 3 ? pad2D : pad3D
 
     function crossCorr(
-        x::Matrix{ComplexF64},
-        y::Matrix{ComplexF64},
-        iplan::AbstractFFTs.ScaledPlan,
-    )
-        return fftshift(real.(iplan * (x .* y)))
+            x::Array{ComplexF64},
+            y::Array{ComplexF64},
+            iplan::AbstractFFTs.ScaledPlan,
+        )
+            return fftshift(iplan * (x .* y))
     end
-
+    
     function norm(x)
         return sqrt(sum(abs2.(x)))
     end
-    pr = Ny
-    pc = Nx # Relative centers of all correlations
 
-    yi_reg = Array{Float64,3}(undef, size(stack))
+    yi_reg = Array{Float64, N}(undef, size(stack))
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
     # Normalize the stack
-    for m = 1:M
-        stack_dct[:, :, m] ./= norm(stack_dct[:, :, m])
-    end
+    norms = map(norm, eachslice(stack_dct, dims=ND))
+    norms = reshape(norms, ones(Int, ND-1)...,length(norms))
+    stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = zeros((2, M))
+    si = zeros(Int, (ND-1, M))
     # Do FFT registration
-    good_count = 0
-    dummy_for_plan = Array{eltype(stack_dct),2}(undef, (2 * Ny, 2 * Nx))
-    plan = plan_rfft(dummy_for_plan)
-    dummy_for_iplan = Array{ComplexF64,2}(undef, ((2 * Ny) ÷ 2 + 1, 2 * Nx))
-    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1])
-    pre_comp_ref_im = conj.(plan * (pad2D(ref_im)))
+    good_count = 1
+    dummy_for_plan = Array{eltype(stack_dct), ND-1}(undef, (2 .* Ns)...)
+    plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
+    dummy_for_iplan = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1], flags = FFTW.MEASURE)
+    pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
+    im_reg = Array{Float64, ND-1}(undef, Ns...)
+    ft_stack = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    padded_stack_dct = pad_function(stack_dct)
     for m = 1:M
-        corr_im = crossCorr(plan * pad2D(stack_dct[:, :, m]), pre_comp_ref_im, iplan)
-        if maximum(corr_im) < 0.01
-            println("Image " * string(m) * " has poor quality. Skipping")
+        mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
+        corr_im = crossCorr(ft_stack, pre_comp_ref_im, iplan)
+        max_value, max_location = findmax(corr_im)
+        if max_value < 0.01
+            println("Image $m has poor quality. Skipping")
             continue
         end
-        r, c = Tuple(findmax(corr_im)[2])
 
-        si[:, good_count+1] .= [1 + pr - r, 1 + pc - c]
-
-        im_reg = circshift(stack[:, :, m], si[:, good_count+1])
-        yi_reg[:, :, good_count+1] = im_reg
+        si[:, good_count] .= 1 .+ ps .- max_location.I
+        circshift!(im_reg, selectdim(stack, ND, m), si[:, good_count])
+        selectdim(yi_reg, ND, good_count) .= im_reg
         good_count += 1
     end
-    yi_reg = yi_reg[:, :, 1:good_count]
-    return yi_reg, si
+    return collect(selectdim(yi_reg, ND, 1:(good_count-1))), si
 end
 
 """
