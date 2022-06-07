@@ -1,5 +1,5 @@
 using MAT, HDF5
-export readPSFs, pad2D, crop2D, unpad2D
+export readPSFs, pad2D, unpad2D, pad3D, unpad3D
 """    
     readPSFs(path::String, key::String)
 
