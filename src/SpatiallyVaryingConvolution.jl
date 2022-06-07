@@ -131,72 +131,30 @@ function interpolateWeights(weights, shape, si)
     return weights_interp
 end
 
-"""
-    create_forwardmodel(H::Array{T, 3}, padded_weights, unpadded_size) where T
-
-Return a function that computes a spatially varying convolution defined by kernels `H` and
-    their padded weights `padded_weights`.
-
-Expects `H` to be a stack of Fourier-transformed and padded spatially invariant kernels,
-`padded_weights` to be the zero-padded weight of each kernel at each (x,y)-coordinate and
-`crop_indices` the indices to use for cropping after the padded convolution.
-"""
-function createForwardmodel(H::Array{T, 3}, padded_weights, unpadded_size) where T
-    # The size of all buffers is the size of the padded_weights
-    size_x = size(padded_weights)[1:2]
-    # X holds the FT of the weighted image
-    # Y aggregates the FT of the convolution of the weighted image and the PSF components 
-    Y = zeros(T, size_x[1]÷2 + 1, size_x[2])
-    X = similar(Y)
-    # RFFT and IRRFT plans
-    plan = plan_rfft(Array{real(T), 2}(undef, size_x...), flags=FFTW.MEASURE)
-    inv_plan = plan_irfft(Y, size_x[1])
-    # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
-    buf_weighted_x = Array{real(T), 2}(undef, size_x...)
-    buf_irfft_Y = Array{real(T),2}(undef, size_x...)
-    buf_ifftshift_y = Array{real(T),2}(undef, size_x...)
-    forward = let Y=Y, X=X, plan=plan, padded_weights=padded_weights, buf_irfft_Y=buf_irfft_Y, buf_ifftshift_y=buf_ifftshift_y
-        function forward(x)
-            for r = 1:size(padded_weights)[3]
-                buf_weighted_x .= view(padded_weights, :, :, r) .* x
-                mul!(X, plan, buf_weighted_x)
-                if r==1
-                    Y .= X .* view(H, :, :, r)
-                else
-                    Y .+= X .* view(H, :, :, r)
-                end
-            end
-            mul!(buf_irfft_Y, inv_plan, Y)
-            ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-            unpad(buf_ifftshift_y, unpadded_size...)
-        end
-    end
-    return forward
-end
-
-"""    create_forwardmodel(H::Array{T, 4}, padded_weights, unpadded_size) where T
+"""    createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where {T, N}
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
 their padded weights `padded_weights`. The convolution accepts a three-dimensional padded
 volume and returns the convolved volume.
 
-The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx, Nz, rank)`
+The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
 """
-function create_forwardmodel(H::Array{T,4}, padded_weights, unpadded_size) where {T}
-    @assert ndims(padded_weights) == 4 "Weights need to be 4D."
-    # x is padded in first three dimension to be as big as padded_weights
-    size_x = size(padded_weights)[1:3]
-    # X holds the FT of the weighted image
-    X = Array{T,3}(undef, size_x[1] ÷ 2 + 1, size_x[2], size_x[3])
+function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where {T, N}
+    @assert ndims(padded_weights) == N "Weights need to be $(N)D."
+    ND = ndims(H)
+    # x is padded in first N-1 dimension to be as big as padded_weights
+    size_x = size(padded_weights)[1:(ND-1)]
     # Y aggregates the FT of the convolution of the weighted volume and the PSF components 
-    Y = zeros(T, size_x[1] ÷ 2 + 1, size_x[2], size_x[3])
+    Y = zeros(T, size_x[1] ÷ 2 + 1, size_x[2:end]...)
+    # X holds the FT of the weighted image
+    X = similar(Y)
     # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
-    buf_weighted_x = Array{real(T),3}(undef, size_x...)
-    buf_irfft_Y = Array{real(T),3}(undef, size_x...)
-    buf_ifftshift_y = Array{real(T),3}(undef, size_x...)
+    buf_weighted_x = Array{real(T), ND-1}(undef, size_x...)
+    buf_irfft_Y = Array{real(T), ND-1}(undef, size_x...)
+    buf_ifftshift_y = Array{real(T), ND-1}(undef, size_x...)
     # RFFT and IRRFT plans
     plan = plan_rfft(buf_weighted_x, flags = FFTW.MEASURE)
-    inv_plan = plan_irfft(Y, size_x[1])
+    inv_plan = plan_irfft(Y, size_x[1], flags = FFTW.MEASURE)
 
     forward =
         let Y = Y,
@@ -207,16 +165,21 @@ function create_forwardmodel(H::Array{T,4}, padded_weights, unpadded_size) where
             buf_ifftshift_y = buf_ifftshift_y,
             H = H,
             inv_plan = inv_plan,
-            buf_weighted_x = buf_weighted_x
+            buf_weighted_x = buf_weighted_x,
+            unpadded_size = unpadded_size,
+            N = N
 
             function forward(x)
                 for r = 1:size(padded_weights)[end]
-                    buf_weighted_x .= view(padded_weights, :, :, :, r) .* x
+                    buf_weighted_x .= selectdim(padded_weights, N, r) .* x
+                    #buf_weighted_x .= view(padded_weights, :, :, :, r) .* x
                     mul!(X, plan, buf_weighted_x)
                     if r == 1
-                        Y .= X .* view(H, :, :, :, r)
+                        Y .= X .* selectdim(H, N, r)
+                        #Y .= X .* view(H, :, :, :, r)
                     else
-                        Y .+= X .* view(H, :, :, :, r)
+                        Y .+= X .* selectdim(H, N, r)
+                        #Y .+= X .* view(H, :, :, :, r)
                     end
                 end
                 mul!(buf_irfft_Y, inv_plan, Y)
