@@ -17,18 +17,17 @@ and return the aligned PSFs and their shifts.
 If `ref_im` has size `(Ny, Nx)`/`(Ny, Nx, Nz)`, `stack` should have size
  `(Ny, Nx, nrPSFs)`/`(Ny, Nx, Nz, nrPSFs)`.
 """
-function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
+function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     @assert N in [3, 4] "stack needs to be a 3d/4d array but was $(N)d"
     ND = ndims(stack)
-    Ns = Array{Int, 1}(undef, ND-1)
-    Ns .= size(stack)[1:end-1]
+    Ns = size(stack)[1:end-1]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
     pad_function = x -> padND(x, ND-1)
 
     function crossCorr(
-            x::Array{ComplexF64},
-            y::Array{ComplexF64},
+            x::AbstractArray{Complex{T}},
+            y::AbstractArray{Complex{T}},
             iplan::AbstractFFTs.ScaledPlan,
         )
             return fftshift(iplan * (x .* y))
@@ -38,7 +37,7 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
         return sqrt(sum(abs2.(x)))
     end
 
-    yi_reg = Array{Float64, N}(undef, size(stack))
+    yi_reg = similar(stack, size(stack)...)
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
@@ -51,13 +50,13 @@ function registerPSFs(stack::Array{T,N}, ref_im) where {T,N}
     si = zeros(Int, (ND-1, M))
     # Do FFT registration
     good_count = 1
-    dummy_for_plan = Array{eltype(stack_dct), ND-1}(undef, (2 .* Ns)...)
+    dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
     plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
-    dummy_for_iplan = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
-    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1], flags = FFTW.MEASURE)
+    dummy_for_iplan = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    iplan = inv(plan) 
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = Array{Float64, ND-1}(undef, Ns...)
-    ft_stack = Array{ComplexF64, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    im_reg = Array{T, ND-1}(undef, Ns...)
+    ft_stack = Array{Complex{T}, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
     for m = 1:M
         mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
@@ -92,14 +91,14 @@ Calculate the SVD of a collection of PSFs `yi_reg` with reduced rank `rnk`.
 components and the weights to reconstruct the original PSFs. `rnk` needs 
 to be smaller than `nrPSFs`.
 """
-function decompose(yi_reg::Array{T, N}, rnk) where {T,N}
+function decompose(yi_reg::AbstractArray{T, N}, rnk) where {T,N}
     Ns = size(yi_reg)[1:N-1]
     nrPSFs = size(yi_reg)[end]
     ymat = reshape(yi_reg, (prod(Ns), nrPSFs))
 
     Z = svds(ymat; nsv = rnk)[1]
     comps = reshape(Z.U, (Ns..., rnk))
-    weights = Array{Float64,2}(undef, (nrPSFs, rnk))
+    weights = similar(yi_reg, nrPSFs, rnk)
     mul!(weights, Z.V, LinearAlgebra.Diagonal(Z.S))
     return comps, weights
 end
@@ -109,7 +108,7 @@ end
 
 Interpolate `weights` defined at positions `si` onto a grid of size `shape`.
 """
-function interpolateWeights(weights, shape, si)
+function interpolateWeights(weights::AbstractArray{T, N}, shape, si) where {T, N}
     Ny, Nx = shape
     rnk = size(weights)[2]
 
@@ -121,8 +120,8 @@ function interpolateWeights(weights, shape, si)
     xi = -si[2, :]
     yi = -si[1, :]
 
-    weights_interp = Array{Float64,3}(undef, (Ny, Nx, rnk))
-    points = Float64.([xi yi]')
+    weights_interp = similar(weights, Ny, Nx, rnk)
+    points = T.([xi yi]')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r = 1:rnk
         itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:,r])
@@ -139,7 +138,7 @@ volume and returns the convolved volume.
 
 The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
 """
-function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where {T, N}
+function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
     ND = ndims(H)
     # x is padded in first N-1 dimension to be as big as padded_weights
@@ -149,12 +148,12 @@ function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where
     # X holds the FT of the weighted image
     X = similar(Y)
     # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
-    buf_weighted_x = Array{real(T), ND-1}(undef, size_x...)
-    buf_irfft_Y = Array{real(T), ND-1}(undef, size_x...)
-    buf_ifftshift_y = Array{real(T), ND-1}(undef, size_x...)
+    buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
+    buf_irfft_Y = similar(buf_weighted_x)
+    buf_ifftshift_y = similar(buf_weighted_x) 
     # RFFT and IRRFT plans
     plan = plan_rfft(buf_weighted_x, flags = FFTW.MEASURE)
-    inv_plan = plan_irfft(Y, size_x[1], flags = FFTW.MEASURE)
+    inv_plan = inv(plan) 
 
     forward =
         let Y = Y,
