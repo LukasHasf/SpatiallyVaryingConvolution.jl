@@ -202,7 +202,7 @@ function generateModel(
     if N == 4 && any(shifts[3, :] .!= zero(Int))
         # TODO: This is wrong
         # If PSFs are shifted in z, decomposition and interpolation have to be done z-slice weights_interp
-        comps = similar(psfs_reg, size(psfs_reg)[1:(end-1)]..., rank)
+        comps = similar(psfs_reg, size(psfs_reg)[1:(end - 1)]..., rank)
         weights_interp = similar(comps)
         for i in 1:size(psfs_reg, 3)
             temp_comps, weights = decompose(psfs_reg[:, :, i, :], rank)
