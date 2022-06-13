@@ -50,3 +50,21 @@ function unpad(x, Ns...)
     selection = [low_inds[i]:upp_inds[i] for i in eachindex(Ns)]
     return x[selection...]
 end
+
+function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) where {T,N}
+    ND = ndims(H)
+    # x is padded in first N-1 dimension to be as big as padded_weights
+    size_x = size_padded_weights[1:(ND - 1)]
+    # Y aggregates the FT of the convolution of the weighted volume and the PSF components
+    Y = similar(H, size_x[1] ÷ 2 + 1, size_x[2:end]...)
+    # X holds the FT of the weighted image
+    X = similar(Y)
+    # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
+    buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
+    buf_irfft_Y = similar(buf_weighted_x)
+    buf_ifftshift_y = similar(buf_weighted_x)
+    # RFFT and IRRFT plans
+    plan = plan_rfft(buf_weighted_x; flags=FFTW.MEASURE)
+    inv_plan = inv(plan)
+    return Y, X, buf_weighted_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan
+end

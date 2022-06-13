@@ -141,20 +141,9 @@ function createForwardmodel(
     H::AbstractArray{T,N}, padded_weights, unpadded_size
 ) where {T,N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
-    ND = ndims(H)
-    # x is padded in first N-1 dimension to be as big as padded_weights
-    size_x = size(padded_weights)[1:(ND - 1)]
-    # Y aggregates the FT of the convolution of the weighted volume and the PSF components
-    Y = similar(H, size_x[1] ÷ 2 + 1, size_x[2:end]...)
-    # X holds the FT of the weighted image
-    X = similar(Y)
-    # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
-    buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
-    buf_irfft_Y = similar(buf_weighted_x)
-    buf_ifftshift_y = similar(buf_weighted_x)
-    # RFFT and IRRFT plans
-    plan = plan_rfft(buf_weighted_x; flags=FFTW.MEASURE)
-    inv_plan = inv(plan)
+    Y, X, buf_weighted_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
+        H, size(padded_weights)
+    )
 
     forward =
         let Y = Y,
