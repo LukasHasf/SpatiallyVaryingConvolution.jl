@@ -33,15 +33,15 @@ end
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
 function padND(x, n)
-    return select_region(x, new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
+    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
 function lower_index(N)
-    return Bool(N % 2) ? (N+3)÷2 : (N+2)÷2
+    return Bool(N % 2) ? (N + 3) ÷ 2 : (N + 2) ÷ 2
 end
 
 function upper_index(N)
-    return Bool(N % 2) ?  3*N÷2 +1 : 3*N÷2
+    return Bool(N % 2) ? 3 * N ÷ 2 + 1 : 3 * N ÷ 2
 end
 
 function unpad(x, Ns...)

@@ -6,15 +6,15 @@ using InteractiveUtils
 
 # ╔═╡ 95913df4-d05b-11ec-0ce6-d52c5d4770ec
 begin
-	import Pkg;
-	Pkg.activate(".")
-	using Revise
-	using SpatiallyVaryingConvolution
-	using DeconvOptim
-	using Colors
-	using FFTW
-	using TestImages
-	using ImageShow
+    using Pkg: Pkg
+    Pkg.activate(".")
+    using Revise
+    using SpatiallyVaryingConvolution
+    using DeconvOptim
+    using Colors
+    using FFTW
+    using TestImages
+    using ImageShow
 end
 
 # ╔═╡ 3a5bd644-9f29-40ae-a421-1947f1425dad
@@ -37,13 +37,23 @@ psfs = zeros(Float64, Ny, Nx, nrPSFs);
 psf_radii = [20, 20, 20, 20, 400, 20, 20, 20, 20]
 
 # ╔═╡ 78f15bce-d47e-4555-9879-ad6a384057e8
-shifts = [(Ny ÷ 4, Nx ÷ 4), (2*Ny ÷ 4, Nx ÷ 4), (3*Ny ÷ 4, Nx ÷ 4),
-			(Ny ÷ 4, 2*Nx ÷ 4), (2*Ny ÷ 4, 2*Nx ÷ 4), (3*Ny ÷ 4, 2*Nx ÷ 4),
-		(Ny ÷ 4, 3*Nx ÷ 4), (2*Ny ÷ 4, 3*Nx ÷ 4), (3*Ny ÷ 4, 3*Nx ÷ 4)];
+shifts = [
+    (Ny ÷ 4, Nx ÷ 4),
+    (2 * Ny ÷ 4, Nx ÷ 4),
+    (3 * Ny ÷ 4, Nx ÷ 4),
+    (Ny ÷ 4, 2 * Nx ÷ 4),
+    (2 * Ny ÷ 4, 2 * Nx ÷ 4),
+    (3 * Ny ÷ 4, 2 * Nx ÷ 4),
+    (Ny ÷ 4, 3 * Nx ÷ 4),
+    (2 * Ny ÷ 4, 3 * Nx ÷ 4),
+    (3 * Ny ÷ 4, 3 * Nx ÷ 4),
+];
 
 # ╔═╡ fc9315e7-7887-4134-897e-f9d95479d44f
 for i in 1:nrPSFs
-	psfs[:, :, i] .= circshift(DeconvOptim.generate_psf((Ny, Nx), psf_radii[i]), -1 .* shifts[i])
+    psfs[:, :, i] .= circshift(
+        DeconvOptim.generate_psf((Ny, Nx), psf_radii[i]), -1 .* shifts[i]
+    )
 end
 
 # ╔═╡ 7f9350b7-cde3-4b2b-805d-51e2bf400eb0
@@ -52,7 +62,7 @@ A maximum projection of the used PSFs
 """
 
 # ╔═╡ ac515b97-479b-430f-99bf-d040268907df
-Gray.(maximum(psfs, dims=3)[:, :, 1] .* 10)
+Gray.(maximum(psfs; dims=3)[:, :, 1] .* 10)
 
 # ╔═╡ d67df24c-4ccb-404c-84aa-109441815766
 md"""

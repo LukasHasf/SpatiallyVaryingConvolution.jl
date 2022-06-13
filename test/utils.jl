@@ -2,7 +2,7 @@
     @testset "Test padding/unpadding" begin
         Ny, Nx = 100, 101
         x = rand(Float64, Ny, Nx)
-        @test unpad(padND(x,  2), Ny, Nx) == x
+        @test unpad(padND(x, 2), Ny, Nx) == x
 
         Ny, Nx = 101, 100
         x = rand(Float64, Ny, Nx)

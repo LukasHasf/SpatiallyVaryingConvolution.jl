@@ -20,19 +20,19 @@ If `ref_im` has size `(Ny, Nx)`/`(Ny, Nx, Nz)`, `stack` should have size
 function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     @assert N in [3, 4] "stack needs to be a 3d/4d array but was $(N)d"
     ND = ndims(stack)
-    Ns = size(stack)[1:end-1]
+    Ns = size(stack)[1:(end - 1)]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
-    pad_function = x -> padND(x, ND-1)
+    pad_function = x -> padND(x, ND - 1)
 
     function crossCorr(
-            x::AbstractArray{Complex{T}},
-            y::AbstractArray{Complex{T}},
-            iplan::AbstractFFTs.ScaledPlan,
-        )
-            return fftshift(iplan * (x .* y))
+        x::AbstractArray{Complex{T}},
+        y::AbstractArray{Complex{T}},
+        iplan::AbstractFFTs.ScaledPlan,
+    )
+        return fftshift(iplan * (x .* y))
     end
-    
+
     function norm(x)
         return sqrt(sum(abs2.(x)))
     end
@@ -42,22 +42,22 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     ref_norm = norm(ref_im) # norm of ref_im
 
     # Normalize the stack
-    norms = map(norm, eachslice(stack_dct, dims=ND))
-    norms = reshape(norms, ones(Int, ND-1)..., length(norms))
+    norms = map(norm, eachslice(stack_dct; dims=ND))
+    norms = reshape(norms, ones(Int, ND - 1)..., length(norms))
     stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = similar(ref_im, Int, ND-1, M)
+    si = similar(ref_im, Int, ND - 1, M)
     # Do FFT registration
     good_count = 1
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
-    plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
-    iplan = inv(plan) 
+    plan = plan_rfft(dummy_for_plan; flags=FFTW.MEASURE)
+    iplan = inv(plan)
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
     im_reg = similar(stack_dct, Ns...)
-    ft_stack = similar(stack_dct, Complex{T},  (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    ft_stack = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
-    for m = 1:M
+    for m in 1:M
         mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
         corr_im = crossCorr(ft_stack, pre_comp_ref_im, iplan)
         max_value, max_location = findmax(corr_im)
@@ -78,7 +78,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         selectdim(yi_reg, ND, good_count) .= im_reg
         good_count += 1
     end
-    return collect(selectdim(yi_reg, ND, 1:(good_count-1))), si
+    return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
 end
 
 """
@@ -90,12 +90,12 @@ Calculate the SVD of a collection of PSFs `yi_reg` with reduced rank `rnk`.
 components and the weights to reconstruct the original PSFs. `rnk` needs 
 to be smaller than `nrPSFs`.
 """
-function decompose(yi_reg::AbstractArray{T, N}, rnk) where {T,N}
-    Ns = size(yi_reg)[1:N-1]
+function decompose(yi_reg::AbstractArray{T,N}, rnk) where {T,N}
+    Ns = size(yi_reg)[1:(N - 1)]
     nrPSFs = size(yi_reg)[end]
     ymat = reshape(yi_reg, (prod(Ns), nrPSFs))
 
-    Z = svds(ymat; nsv = rnk)[1]
+    Z = svds(ymat; nsv=rnk)[1]
     comps = reshape(Z.U, (Ns..., rnk))
     weights = similar(yi_reg, nrPSFs, rnk)
     mul!(weights, Z.V, LinearAlgebra.Diagonal(Z.S))
@@ -107,12 +107,12 @@ end
 
 Interpolate `weights` defined at positions `si` onto a grid of size `shape`.
 """
-function interpolateWeights(weights::AbstractArray{T, N}, shape, si) where {T, N}
+function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
     Ny, Nx = shape
     rnk = size(weights)[2]
 
-    xq = -Nx/2:(Nx-1)/2
-    yq = (-Ny/2:(Ny-1)/2)'
+    xq = (-Nx / 2):((Nx - 1) / 2)
+    yq = ((-Ny / 2):((Ny - 1) / 2))'
     X = repeat(xq, Ny)[:]
     Y = repeat(yq, Nx)[:]
     gridPoints = [X Y]'
@@ -122,8 +122,8 @@ function interpolateWeights(weights::AbstractArray{T, N}, shape, si) where {T, N
     weights_interp = similar(weights, Ny, Nx, rnk)
     points = T.([xi yi]')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
-    for r = 1:rnk
-        itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:,r])
+    for r in 1:rnk
+        itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:, r])
         weights_interp[:, :, r] .= reshape(evaluate(itp, gridPoints), (Nx, Ny))'
     end
     return weights_interp
@@ -137,11 +137,13 @@ volume and returns the convolved volume.
 
 The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
 """
-function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
+function createForwardmodel(
+    H::AbstractArray{T,N}, padded_weights, unpadded_size
+) where {T,N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
     ND = ndims(H)
     # x is padded in first N-1 dimension to be as big as padded_weights
-    size_x = size(padded_weights)[1:(ND-1)]
+    size_x = size(padded_weights)[1:(ND - 1)]
     # Y aggregates the FT of the convolution of the weighted volume and the PSF components
     Y = similar(H, size_x[1] ÷ 2 + 1, size_x[2:end]...)
     # X holds the FT of the weighted image
@@ -149,10 +151,10 @@ function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_siz
     # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
     buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
     buf_irfft_Y = similar(buf_weighted_x)
-    buf_ifftshift_y = similar(buf_weighted_x) 
+    buf_ifftshift_y = similar(buf_weighted_x)
     # RFFT and IRRFT plans
-    plan = plan_rfft(buf_weighted_x, flags = FFTW.MEASURE)
-    inv_plan = inv(plan) 
+    plan = plan_rfft(buf_weighted_x; flags=FFTW.MEASURE)
+    inv_plan = inv(plan)
 
     forward =
         let Y = Y,
@@ -168,7 +170,7 @@ function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_siz
             N = N
 
             function forward(x)
-                for r = 1:size(padded_weights)[end]
+                for r in 1:size(padded_weights)[end]
                     buf_weighted_x .= selectdim(padded_weights, N, r) .* x
                     #buf_weighted_x .= view(padded_weights, :, :, :, r) .* x
                     mul!(X, plan, buf_weighted_x)
@@ -182,7 +184,7 @@ function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_siz
                 end
                 mul!(buf_irfft_Y, inv_plan, Y)
                 ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-                unpad(buf_ifftshift_y, unpadded_size...)
+                return unpad(buf_ifftshift_y, unpadded_size...)
             end
         end
     return forward
@@ -197,27 +199,32 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
-function generateModel(psfs::AbstractArray{T, N}, rank::Int, ref_image_index::Int=-1) where {T, N}
+function generateModel(
+    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1
+) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
     ND = ndims(psfs)
-    psfs_reg, shifts =
-        SpatiallyVaryingConvolution.registerPSFs(psfs, collect(selectdim(psfs, N, ref_image_index)))
-    if N==4 && any(shifts[3, :] .!= zero(Int))
+    psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
+        psfs, collect(selectdim(psfs, N, ref_image_index))
+    )
+    if N == 4 && any(shifts[3, :] .!= zero(Int))
         # If PSFs are shifted in z, decomposition and interpolation have to be done z-slice weights_interp
         comps = sim(psfs_reg)
         weights_interp = similar(comps)
         for i in 1:size(psfs_reg, 3)
             temp_comps, weights = decompose(psfs_reg[:, :, i, :], rank)
-            weights_interp[:, :, i, :] .= interpolateWeights(weights, size(comps)[1:2], shifts)
+            weights_interp[:, :, i, :] .= interpolateWeights(
+                weights, size(comps)[1:2], shifts
+            )
             comps[:, :, i, :] .= temp_comps
         end
     else
         comps, weights = decompose(psfs_reg, rank)
         weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :])
-        if N==4
+        if N == 4
             # Repeat x-y interpolated weights Nz times 
             weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
             # Reshape to (Ny, Nx, Nz, rank)
@@ -225,32 +232,30 @@ function generateModel(psfs::AbstractArray{T, N}, rank::Int, ref_image_index::In
         end
     end
 
-    Ns = size(comps)[1:(ND-1)]
+    Ns = size(comps)[1:(ND - 1)]
     #= TODO: Normalization of h  and weights_interp
         - PSFs at every location should have a sum of 1 (?)
         - comps is normalized along the rank dimension according to L2 norm=#
     h = comps
 
     # padded values
-    
-    H = rfft(padND(h, ND-1), 1:(ND-1))
-    flatfield = padND(ones(Float64, Ns...), ND-1)
-    padded_weights = padND(weights_interp, ND-1)
-    model = SpatiallyVaryingConvolution.createForwardmodel(
-        H,
-        padded_weights,
-        tuple(Ns...)
-    )
+
+    H = rfft(padND(h, ND - 1), 1:(ND - 1))
+    flatfield = padND(ones(Float64, Ns...), ND - 1)
+    padded_weights = padND(weights_interp, ND - 1)
+    model = SpatiallyVaryingConvolution.createForwardmodel(H, padded_weights, tuple(Ns...))
     flatfield_sim = model(flatfield)
-    svc_model = let flatfield_sim=flatfield_sim, model=model
+    svc_model = let flatfield_sim = flatfield_sim, model = model
         function svc_model(x)
-            return model(x)./flatfield_sim
+            return model(x) ./ flatfield_sim
         end
     end
     return svc_model
 end
 
-function generateModel(psfs_path::String, psf_name::String,rank::Int, ref_image_index::Int=-1)
+function generateModel(
+    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1
+)
     psfs = readPSFs(psfs_path, psf_name)
     return generateModel(psfs, rank, ref_image_index)
 end
