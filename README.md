@@ -1,6 +1,10 @@
 # SpatiallyVaryingConvolution.jl
 
 This package contains utilities to simulate imaging a sample with an optical device with a spatially varying point spread function (PSF). It implements the field+varying forward model described in [[1]](#Sources).
+| Build status | Code Coverage|
+|:------------:|:------------:|
+|[![CI](https://github.com/LukasHasf/SpatiallyVaryingConvolution.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LukasHasf/SpatiallyVaryingConvolution.jl/actions/workflows/ci.yml)|[![codecov](https://codecov.io/gh/LukasHasf/SpatiallyVaryingConvolution.jl/branch/master/graph/badge.svg?token=B1FCHQMYSQ)](https://codecov.io/gh/LukasHasf/SpatiallyVaryingConvolution.jl)|
+
 
 ## Installation
 ```julia
