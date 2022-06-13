@@ -52,7 +52,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     good_count = 1
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
     plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
-    dummy_for_iplan = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     iplan = inv(plan) 
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
     im_reg = similar(stack_dct, Ns...)
