@@ -138,7 +138,7 @@ volume and returns the convolved volume.
 
 The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
 """
-function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where {T, N}
+function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
     ND = ndims(H)
     # x is padded in first N-1 dimension to be as big as padded_weights
@@ -148,9 +148,9 @@ function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where
     # X holds the FT of the weighted image
     X = similar(Y)
     # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
-    buf_weighted_x = Array{real(T), ND-1}(undef, size_x...)
-    buf_irfft_Y = Array{real(T), ND-1}(undef, size_x...)
-    buf_ifftshift_y = Array{real(T), ND-1}(undef, size_x...)
+    buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
+    buf_irfft_Y = similar(buf_weighted_x)
+    buf_ifftshift_y = similar(buf_weighted_x) 
     # RFFT and IRRFT plans
     plan = plan_rfft(buf_weighted_x, flags = FFTW.MEASURE)
     inv_plan = inv(plan) 
