@@ -48,12 +48,11 @@
         mat_key = "abc"
         h5_key = "def"
         h5_filename = "h5_test.h5"
-        savePSFs(random_1, mat_filename, mat_key)
-        savePSFs(random_2, h5_filename, h5_key)
-        @test random_1 == readPSFs(mat_filename, mat_key)
-        @test random_2 == readPSFs(h5_filename, h5_key)
-        @test isnothing(readPSFs(mat_filename, h5_key))
-        rm(mat_filename)
-        rm(h5_filename)
+        path = mktempdir()
+        savePSFs(random_1, joinpath(path, mat_filename), mat_key)
+        savePSFs(random_2, joinpath(path, h5_filename), h5_key)
+        @test random_1 == readPSFs(joinpath(path, mat_filename), mat_key)
+        @test random_2 == readPSFs(joinpath(path, h5_filename), h5_key)
+        @test isnothing(readPSFs(joinpath(path, mat_filename), h5_key))
     end
 end
