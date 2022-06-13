@@ -55,8 +55,8 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     dummy_for_iplan = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     iplan = inv(plan) 
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = Array{T, ND-1}(undef, Ns...)
-    ft_stack = Array{Complex{T}, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
+    im_reg = similar(stack_dct, Ns...)
+    ft_stack = similar(stack_dct, Complex{T},  (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
     for m = 1:M
         mul!(ft_stack, plan, selectdim(padded_stack_dct, ND, m))
@@ -130,7 +130,7 @@ function interpolateWeights(weights::AbstractArray{T, N}, shape, si) where {T, N
     return weights_interp
 end
 
-"""    createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where {T, N}
+"""    createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
 their padded weights `padded_weights`. The convolution accepts a three-dimensional padded
@@ -190,7 +190,7 @@ function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_siz
 end
 
 """
-    generate_model(psfs::Array{T,3}, rank::Int[, ref_image_index::Int])
+    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int])
 
 Construct the forward model using the PSFs in `psfs` employing an interpolation
  of the first `rank` components calculated from a SVD.
@@ -198,7 +198,7 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
-function generateModel(psfs::Array{T, N},rank::Int, ref_image_index::Int=-1) where {T, N}
+function generateModel(psfs::AbstractArray{T, N}, rank::Int, ref_image_index::Int=-1) where {T, N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
@@ -208,7 +208,7 @@ function generateModel(psfs::Array{T, N},rank::Int, ref_image_index::Int=-1) whe
         SpatiallyVaryingConvolution.registerPSFs(psfs, collect(selectdim(psfs, N, ref_image_index)))
     if N==4 && any(shifts[3, :] .!= zero(Int))
         # If PSFs are shifted in z, decomposition and interpolation have to be done z-slice weights_interp
-        comps = Array{Float64, 4}(undef, size(psfs_reg)...)
+        comps = sim(psfs_reg)
         weights_interp = similar(comps)
         for i in 1:size(psfs_reg, 3)
             temp_comps, weights = decompose(psfs_reg[:, :, i, :], rank)
