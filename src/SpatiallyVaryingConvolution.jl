@@ -53,7 +53,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
     plan = plan_rfft(dummy_for_plan, flags = FFTW.MEASURE)
     dummy_for_iplan = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
-    iplan = plan_irfft(dummy_for_iplan, size(dummy_for_plan)[1], flags = FFTW.MEASURE)
+    iplan = inv(plan) 
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
     im_reg = Array{T, ND-1}(undef, Ns...)
     ft_stack = Array{Complex{T}, ND-1}(undef, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
@@ -153,7 +153,7 @@ function createForwardmodel(H::Array{T, N}, padded_weights, unpadded_size) where
     buf_ifftshift_y = Array{real(T), ND-1}(undef, size_x...)
     # RFFT and IRRFT plans
     plan = plan_rfft(buf_weighted_x, flags = FFTW.MEASURE)
-    inv_plan = plan_irfft(Y, size_x[1], flags = FFTW.MEASURE)
+    inv_plan = inv(plan) 
 
     forward =
         let Y = Y,
