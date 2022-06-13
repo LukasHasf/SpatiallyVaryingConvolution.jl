@@ -1,4 +1,4 @@
-@testset "Test that shift registration works as intended" begin
+@testset "Test shift registration" begin
     function calc_shifts(shifts)
         Ny = 501
         Nx = 501
