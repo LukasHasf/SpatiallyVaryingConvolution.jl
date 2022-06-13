@@ -1,4 +1,4 @@
-@testset "Test behaviour of convolutions" begin
+@testset "Test 2D model" begin
     function convolve(x, y)
         Ny, Nx = size(x)
         mask = findall(SpatiallyVaryingConvolution.padND(ones(Float64, Ny, Nx), 2) .== 1)
