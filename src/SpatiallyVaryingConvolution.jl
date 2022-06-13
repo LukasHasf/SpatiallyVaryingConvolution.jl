@@ -47,7 +47,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = zeros(Int, (ND-1, M))
+    si = similar(ref_im, Int,  ND-1, M)
     # Do FFT registration
     good_count = 1
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
@@ -143,8 +143,8 @@ function createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_siz
     ND = ndims(H)
     # x is padded in first N-1 dimension to be as big as padded_weights
     size_x = size(padded_weights)[1:(ND-1)]
-    # Y aggregates the FT of the convolution of the weighted volume and the PSF components 
-    Y = zeros(T, size_x[1] ÷ 2 + 1, size_x[2:end]...)
+    # Y aggregates the FT of the convolution of the weighted volume and the PSF components
+    Y = similar(H, size_x[1] ÷ 2 + 1, size_x[2:end]...)
     # X holds the FT of the weighted image
     X = similar(Y)
     # Buffers for the weighted image and the irfft-ed and ifftshift-ed convolution images
