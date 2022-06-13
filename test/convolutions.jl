@@ -59,22 +59,22 @@
         for shift_index in 1:nrPSFs
             psfs[
                 center[1] + shifts[1, shift_index],
-                center[1] + shifts[1, shift_index],
+                center[2] + shifts[2, shift_index],
                 shift_index,
             ] = one(Float64) / 4
             psfs[
                 center[1] + shifts[1, shift_index] + 1,
-                center[1] + shifts[1, shift_index],
+                center[2] + shifts[2, shift_index],
                 shift_index,
             ] = one(Float64) / 4
             psfs[
                 center[1] + shifts[1, shift_index] - 1,
-                center[1] + shifts[1, shift_index],
+                center[2] + shifts[2, shift_index],
                 shift_index,
             ] = one(Float64) / 4
             psfs[
                 center[1] + shifts[1, shift_index],
-                center[1] + shifts[1, shift_index] + 1,
+                center[2] + shifts[2, shift_index] + 1,
                 shift_index,
             ] = one(Float64) / 4
         end
