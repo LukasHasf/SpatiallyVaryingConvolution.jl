@@ -43,11 +43,11 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
 
     # Normalize the stack
     norms = map(norm, eachslice(stack_dct, dims=ND))
-    norms = reshape(norms, ones(Int, ND-1)...,length(norms))
+    norms = reshape(norms, ones(Int, ND-1)..., length(norms))
     stack_dct ./= norms
     ref_im ./= ref_norm
 
-    si = similar(ref_im, Int,  ND-1, M)
+    si = similar(ref_im, Int, ND-1, M)
     # Do FFT registration
     good_count = 1
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
