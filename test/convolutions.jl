@@ -144,14 +144,13 @@ end
         @test sim_image ≈ input_image
     end
 
-    #=
     @testset "Convolution with non-varying PSF is normal convolution" begin
         nrPSFs = 5
         rank = nrPSFs - 1
         Ny = 101
         Nx = 100
         Nz = 100
-        shifts = rand(-50:50, (3, nrPSFs))
+        shifts = rand(-30:30, (3, nrPSFs))
         shifts[:, size(shifts)[2] ÷ 2 + 1] .= 0
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
         center = Int.([Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1])
@@ -190,5 +189,5 @@ end
         convolved_image = convolve(input_image, psfs[:, :, :, nrPSFs ÷ 2 + 1])
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ convolved_image
-    end =#
+    end
 end
