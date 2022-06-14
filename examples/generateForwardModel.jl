@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.4
+# v0.19.8
 
 using Markdown
 using InteractiveUtils
@@ -73,7 +73,10 @@ md"""
 image_to_convolve = testimage("resolution_test_512")
 
 # ╔═╡ 5d79fa8b-72ad-4140-9aa2-3502e6a06081
-padded_image = pad2D(Float64.(image_to_convolve));
+padded_image = padND(Float64.(image_to_convolve), 2);
+
+# ╔═╡ 107f10dc-7122-4043-93d8-eee2f60af1a5
+Gray.(padded_image)
 
 # ╔═╡ f8ca4fc5-3c41-40e4-b471-a763270c8024
 md"""
@@ -90,6 +93,9 @@ md"""
 
 # ╔═╡ 725281de-9eb4-4ed4-a40b-85f498b0a55a
 convolved_image = forwardModel(padded_image);
+
+# ╔═╡ a9146bc4-ded0-4fa1-8a61-d9ab09aec57f
+Gray.(convolved_image)
 
 # ╔═╡ 7bff7c23-9e13-4f9f-8716-0601fcd6ba6a
 ImageShow.mosaicview(image_to_convolve, convolved_image; nrow=1)
@@ -108,8 +114,10 @@ ImageShow.mosaicview(image_to_convolve, convolved_image; nrow=1)
 # ╟─d67df24c-4ccb-404c-84aa-109441815766
 # ╠═6b0c01fc-9970-4b55-918b-86c3486af3c2
 # ╠═5d79fa8b-72ad-4140-9aa2-3502e6a06081
+# ╠═107f10dc-7122-4043-93d8-eee2f60af1a5
 # ╟─f8ca4fc5-3c41-40e4-b471-a763270c8024
 # ╠═f119d560-57a8-42d1-9f2d-9718cb2f825a
 # ╟─6036accd-9cfa-4198-bf80-22db74d26c38
 # ╠═725281de-9eb4-4ed4-a40b-85f498b0a55a
+# ╠═a9146bc4-ded0-4fa1-8a61-d9ab09aec57f
 # ╠═7bff7c23-9e13-4f9f-8716-0601fcd6ba6a
