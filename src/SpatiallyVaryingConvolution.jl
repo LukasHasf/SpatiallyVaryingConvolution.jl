@@ -108,23 +108,32 @@ end
 Interpolate `weights` defined at positions `si` onto a grid of size `shape`.
 """
 function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
-    Ny, Nx = shape
+    @assert length(shape) == size(si, 1)
     rnk = size(weights)[2]
 
-    xq = (-Nx / 2):((Nx - 1) / 2)
-    yq = ((-Ny / 2):((Ny - 1) / 2))'
-    X = repeat(xq, Ny)[:]
-    Y = repeat(yq, Nx)[:]
-    gridPoints = [X Y]'
-    xi = -si[2, :]
-    yi = -si[1, :]
+    coo_q = [(-N / 2):((N - 1) / 2) for N in shape]
+    if length(shape) == 2
+        gridPoints = vcat(([x y] for y in coo_q[1] for x in coo_q[2])...)'
+    elseif length(shape) == 3
+        gridPoints =
+            vcat(([x y z] for z in coo_q[3] for y in coo_q[1] for x in coo_q[2])...)'
+    end
+    xyz_indices = [2 1 3]
+    coo_s = [-si[xyz_indices[i], :] for i in 1:size(si, 1)]
 
-    weights_interp = similar(weights, Ny, Nx, rnk)
-    points = T.([xi yi]')
+    new_shape = [shape[xyz_indices[i]] for i in 1:length(shape)]
+    weights_interp = similar(weights, shape..., rnk)
+    points = T.(hcat([coo_s[i] for i in 1:size(si, 1)]...)')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r in 1:rnk
         itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:, r])
-        weights_interp[:, :, r] .= reshape(evaluate(itp, gridPoints), (Nx, Ny))'
+        interpolated = evaluate(itp, gridPoints)
+        if length(shape) == 2
+            interpolated = reshape(interpolated, new_shape...)'
+        elseif length(shape) == 3
+            interpolated = permutedims(reshape(interpolated, new_shape...), [2 1 3])
+        end
+        selectdim(weights_interp, ndims(weights_interp), r) .= interpolated
     end
     return weights_interp
 end
@@ -199,20 +208,10 @@ function generateModel(
     psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
         psfs, collect(selectdim(psfs, N, ref_image_index))
     )
+    comps, weights = decompose(psfs_reg, rank)
     if N == 4 && any(shifts[3, :] .!= zero(Int))
-        # TODO: This is wrong
-        # If PSFs are shifted in z, decomposition and interpolation have to be done z-slice weights_interp
-        comps = similar(psfs_reg, size(psfs_reg)[1:(end - 1)]..., rank)
-        weights_interp = similar(comps)
-        for i in 1:size(psfs_reg, 3)
-            temp_comps, weights = decompose(psfs_reg[:, :, i, :], rank)
-            weights_interp[:, :, i, :] .= interpolateWeights(
-                weights, size(comps)[1:2], shifts
-            )
-            comps[:, :, i, :] .= temp_comps
-        end
+        weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts)
     else
-        comps, weights = decompose(psfs_reg, rank)
         weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :])
         if N == 4
             # Repeat x-y interpolated weights Nz times 
