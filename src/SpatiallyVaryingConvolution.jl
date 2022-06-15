@@ -150,7 +150,7 @@ function createForwardmodel(
     H::AbstractArray{T,N}, padded_weights, unpadded_size
 ) where {T,N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
-    Y, X, buf_weighted_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
+    Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
         H, size(padded_weights)
     )
 
@@ -163,21 +163,20 @@ function createForwardmodel(
             buf_ifftshift_y = buf_ifftshift_y,
             H = H,
             inv_plan = inv_plan,
+            buf_padded_x = buf_padded_x,
             buf_weighted_x = buf_weighted_x,
             unpadded_size = unpadded_size,
             N = N
 
             function forward(x)
+                buf_padded_x .= padND(x, ndims(H) - 1)
                 for r in 1:size(padded_weights)[end]
-                    buf_weighted_x .= selectdim(padded_weights, N, r) .* x
-                    #buf_weighted_x .= view(padded_weights, :, :, :, r) .* x
+                    buf_weighted_x .= selectdim(padded_weights, N, r) .* buf_padded_x
                     mul!(X, plan, buf_weighted_x)
                     if r == 1
                         Y .= X .* selectdim(H, N, r)
-                        #Y .= X .* view(H, :, :, :, r)
                     else
                         Y .+= X .* selectdim(H, N, r)
-                        #Y .+= X .* view(H, :, :, :, r)
                     end
                 end
                 mul!(buf_irfft_Y, inv_plan, Y)
@@ -230,7 +229,7 @@ function generateModel(
     # padded values
 
     H = rfft(padND(h, ND - 1), 1:(ND - 1))
-    flatfield = padND(ones(Float64, Ns...), ND - 1)
+    flatfield = ones(Float64, Ns...)
     padded_weights = padND(weights_interp, ND - 1)
     model = SpatiallyVaryingConvolution.createForwardmodel(H, padded_weights, tuple(Ns...))
     flatfield_sim = model(flatfield)

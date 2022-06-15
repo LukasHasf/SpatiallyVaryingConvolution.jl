@@ -1,6 +1,6 @@
 # SpatiallyVaryingConvolution.jl
 
-This package contains utilities to simulate imaging a sample with an optical device with a spatially varying point spread function (PSF). It implements the field+varying forward model described in [[1]](#Sources).
+This package contains utilities to simulate imaging a sample with an optical device with a spatially varying point spread function (PSF). It implements the field-varying forward model described in [[1]](#Sources).
 | Build status | Code Coverage|
 |:------------:|:------------:|
 |[![CI](https://github.com/LukasHasf/SpatiallyVaryingConvolution.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LukasHasf/SpatiallyVaryingConvolution.jl/actions/workflows/ci.yml)|[![codecov](https://codecov.io/gh/LukasHasf/SpatiallyVaryingConvolution.jl/branch/master/graph/badge.svg?token=B1FCHQMYSQ)](https://codecov.io/gh/LukasHasf/SpatiallyVaryingConvolution.jl)|
@@ -32,11 +32,9 @@ julia> psfs_reshaped = ...
 julia> forwardModel = generateModel(psfs_reshaped, 5, 4)
 ```
 
-For now, the forward model needs the input image (numerical array of size `(Ny, Nx)`) to be zero padded to twice its size manually. You can do that with the provided function `pad2D`. The returned image of the forward model is already cropped to the size of the microscope FOV.
+The forward model can then be called on the images / volumes to simulate the action of the modeled system:
 
 ``` julia
-julia> padded_image = pad2D(image_to_convolve)
-
 julia> convolved_image = forwardModel(image_to_convolve)
 ```
 

@@ -66,7 +66,7 @@ end
         savePSFs(psfs, filepath, psfs_key)
         model1 = generateModel(psfs, rank)
         model2 = generateModel(filepath, psfs_key, rank)
-        test_img = padND(rand(Float32, 200, 201), 2)
+        test_img = rand(Float32, 200, 201)
         img1 = model1(test_img)
         img2 = model2(test_img)
         @test img1 ≈ img2

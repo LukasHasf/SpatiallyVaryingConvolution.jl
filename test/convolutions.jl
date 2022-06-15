@@ -18,8 +18,7 @@
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 2)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ input_image
@@ -40,8 +39,7 @@
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 2)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ input_image
@@ -81,8 +79,7 @@
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = zeros(Float64, Ny, Nx)
         input_image[Ny ÷ 2 + 1, Nx ÷ 2 + 1] = 1.0
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 2)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ convolve(input_image, psfs[:, :, nrPSFs ÷ 2 + 1])
@@ -112,8 +109,7 @@ end
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 3)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ input_image
@@ -137,8 +133,7 @@ end
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 3)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image) == size(sim_image)
         @test sim_image ≈ input_image
@@ -183,8 +178,7 @@ end
         model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
         input_image = zeros(Float64, Ny, Nx, Nz)
         input_image[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1] = 1.0
-        input_image_padded = SpatiallyVaryingConvolution.padND(input_image, 3)
-        sim_image = model(input_image_padded)
+        sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         convolved_image = convolve(input_image, psfs[:, :, :, nrPSFs ÷ 2 + 1])
         @test size(input_image) == size(sim_image)
