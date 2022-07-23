@@ -48,6 +48,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     ref_im ./= ref_norm
 
     si = similar(ref_im, Int, ND - 1, M)
+    good_indices = []
     # Do FFT registration
     good_count = 1
     dummy_for_plan = similar(stack_dct, (2 .* Ns)...)
@@ -67,10 +68,24 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         end
 
         si[:, good_count] .= 1 .+ ps .- max_location.I
-        circshift!(im_reg, selectdim(stack, ND, m), si[:, good_count])
-        selectdim(yi_reg, ND, good_count) .= im_reg
+        push!(good_indices, m)
         good_count += 1
     end
+
+    if N==4 && maximum(abs.(si[3, :])) > zero(eltype(si))
+        for ind in good_indices
+            selected_stack = selectdim(stack, ND, ind)
+            linshift!(im_reg, selected_stack, si[:, ind])
+            selectdim(yi_reg, ND, ind) .= im_reg
+        end
+    end
+
+    # Populate yi_reg
+    for ind in good_indices
+        circshift!(im_reg, selectdim(stack, ND, ind), si[:, ind])
+        selectdim(yi_reg, ND, ind) .= im_reg
+    end
+
     return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
 end
 

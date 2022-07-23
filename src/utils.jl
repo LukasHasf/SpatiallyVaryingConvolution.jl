@@ -1,6 +1,7 @@
 using MAT: matopen
 using HDF5: h5open
 export readPSFs, padND, unpad
+export linshift!
 """    
     readPSFs(path::String, key::String)
 
@@ -49,6 +50,18 @@ function unpad(x, Ns...)
     upp_inds = [upper_index(N) for N in Ns]
     selection = [low_inds[i]:upp_inds[i] for i in eachindex(Ns)]
     return x[selection...]
+end
+
+function linshift!(dest::AbstractArray{T,N}, src::AbstractArray{T,N}, shifts::AbstractArray{F, 1}; filler=zero(T)) where {T,F,N}
+    myshifts = ntuple(i ->shifts[i], length(shifts))
+    for ind in CartesianIndices(dest)
+        shifted_ind = ind.I .- myshifts
+        value = filler
+        if !(any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src)))
+            value = src[shifted_ind...]
+        end
+        dest[ind.I...] = value
+    end
 end
 
 function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) where {T,N}
