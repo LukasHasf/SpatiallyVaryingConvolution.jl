@@ -67,13 +67,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         end
 
         si[:, good_count] .= 1 .+ ps .- max_location.I
-        #= TODO: Circshifting is probably not the best way to move the PSF, especially considering 3D
-           - Padding, shifting and cropping may be better as long as noise is low enough to not introduce serious 
-           sinc artifacts
-           - Circshifting in the x-y plane might be okay if autocorrelation length of the noise is small
-                and noise is uncorrelated to PSF location
-            - Circshifting in z would only work if there is enough padding of very low signal slices at both
-                ends of the z-axis. Otherwise top parts of the PSF might become bottom parts of the PSF or vice versa=#
         circshift!(im_reg, selectdim(stack, ND, m), si[:, good_count])
         selectdim(yi_reg, ND, good_count) .= im_reg
         good_count += 1
