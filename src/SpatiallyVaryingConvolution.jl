@@ -222,7 +222,8 @@ function generateModel(
     # padded values
 
     H = rfft(padND(h, ND - 1), 1:(ND - 1))
-    flatfield = ones(Float64, Ns...)
+    flatfield = similar(psfs, Ns...)
+    fill!(flatfield, one(eltype(flatfield)))
     padded_weights = padND(weights_interp, ND - 1)
     model = SpatiallyVaryingConvolution.createForwardmodel(H, padded_weights, tuple(Ns...))
     flatfield_sim = model(flatfield)
