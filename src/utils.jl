@@ -76,7 +76,7 @@ function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) wh
     buf_weighted_x = similar(H, real(T), size_x...) # Array{real(T), ND-1}(undef, size_x...)
     buf_padded_x = similar(buf_weighted_x)
     buf_irfft_Y = similar(buf_weighted_x)
-    buf_ifftshift_y = similar(buf_weighted_x)
+    buf_ifftshift_y = similar(buf_irfft_Y)
     # RFFT and IRRFT plans
     plan = plan_rfft(buf_weighted_x; flags=FFTW.MEASURE)
     inv_plan = inv(plan)

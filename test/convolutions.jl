@@ -115,6 +115,23 @@ end
         @test sim_image ≈ input_image
     end
 
+    @testset "Convolution with reduction" begin
+        Ny = 101
+        Nx = 100
+        Nz = 100
+        nrPSFs = 5
+        rank = nrPSFs - 1
+        psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
+        psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1, :] .= 1
+        model = SpatiallyVaryingConvolution.generateModel(psfs, rank; reduce=true)
+        input_image = rand(Float64, Ny, Nx, Nz)
+        input_image ./= maximum(input_image)
+        sim_image = model(input_image)
+        sim_image ./= maximum(sim_image)
+        @test size(input_image)[1:2] == size(sim_image)
+        @test sim_image ≈ sum(input_image; dims=3) ./ maximum(sum(input_image; dims=3))
+    end
+
     @testset "Convolution with x-y-shifted delta peaks is identity" begin
         nrPSFs = 5
         rank = nrPSFs - 1

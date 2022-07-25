@@ -155,7 +155,7 @@ volume and returns the convolved volume.
 The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
 """
 function createForwardmodel(
-    H::AbstractArray{T,N}, padded_weights, unpadded_size
+    H::AbstractArray{T,N}, padded_weights, unpadded_size; reduce=false
 ) where {T,N}
     @assert ndims(padded_weights) == N "Weights need to be $(N)D."
     Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
@@ -174,7 +174,8 @@ function createForwardmodel(
             buf_padded_x = buf_padded_x,
             buf_weighted_x = buf_weighted_x,
             unpadded_size = unpadded_size,
-            N = N
+            N = N,
+            reduce=reduce
 
             function forward(x)
                 buf_padded_x .= padND(x, ndims(H) - 1)
@@ -189,29 +190,39 @@ function createForwardmodel(
                 end
                 mul!(buf_irfft_Y, inv_plan, Y)
                 ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-                return unpad(buf_ifftshift_y, unpadded_size...)
+                if reduce
+                    return dropdims(sum(unpad(buf_ifftshift_y, unpadded_size...); dims=3); dims=3)
+                else
+                    return unpad(buf_ifftshift_y, unpadded_size...)
+                end
             end
         end
     return forward
 end
 
 """
-    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int])
+    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false)
 
 Construct the forward model using the PSFs in `psfs` employing an interpolation
- of the first `rank` components calculated from a SVD.
+ of the first `rank` components calculated from a SVD. If `reduce==true`, a 3D volume will be
+ mapped to a 2D image by summation over the z-axis.
 
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generateModel(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1
+    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
     ND = ndims(psfs)
+    my_reduce = reduce
+    if reduce && ND==3
+        @info "reduce is true, but dimensions are 2, so reduce is ignored"
+        my_reduce = false
+    end
     psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
         psfs, collect(selectdim(psfs, N, ref_image_index))
     )
@@ -240,7 +251,7 @@ function generateModel(
     flatfield = similar(psfs, Ns...)
     fill!(flatfield, one(eltype(flatfield)))
     padded_weights = padND(weights_interp, ND - 1)
-    model = SpatiallyVaryingConvolution.createForwardmodel(H, padded_weights, tuple(Ns...))
+    model = SpatiallyVaryingConvolution.createForwardmodel(H, padded_weights, tuple(Ns...); reduce=my_reduce)
     flatfield_sim = model(flatfield)
     svc_model = let flatfield_sim = flatfield_sim, model = model
         function svc_model(x)
@@ -251,10 +262,10 @@ function generateModel(
 end
 
 function generateModel(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1
+    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false
 )
     psfs = readPSFs(psfs_path, psf_name)
-    return generateModel(psfs, rank, ref_image_index)
+    return generateModel(psfs, rank, ref_image_index; reduce=reduce)
 end
 
 end # module
