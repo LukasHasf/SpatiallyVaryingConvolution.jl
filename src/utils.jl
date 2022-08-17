@@ -52,12 +52,19 @@ function unpad(x, Ns...)
     return x[selection...]
 end
 
-function linshift!(dest::AbstractArray{T,N}, src::AbstractArray{T,N}, shifts::AbstractArray{F, 1}; filler=zero(T)) where {T,F,N}
-    myshifts = ntuple(i ->shifts[i], length(shifts))
+function linshift!(
+    dest::AbstractArray{T,N},
+    src::AbstractArray{T,N},
+    shifts::AbstractArray{F,1};
+    filler=zero(T),
+) where {T,F,N}
+    myshifts = ntuple(i -> shifts[i], length(shifts))
     for ind in CartesianIndices(dest)
         shifted_ind = ind.I .- myshifts
         value = filler
-        if !(any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src)))
+        if !(
+            any(shifted_ind .<= zero(eltype(shifted_ind))) || any(shifted_ind .> size(src))
+        )
             value = src[shifted_ind...]
         end
         dest[ind.I...] = value
