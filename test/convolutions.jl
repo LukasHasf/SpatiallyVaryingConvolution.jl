@@ -99,9 +99,9 @@ end
         return output ./ maximum(output)
     end
     @testset "Convolution with delta peak is identity" begin
-        Ny = 101
-        Nx = 100
-        Nz = 100
+        Ny = 51
+        Nx = 50
+        Nz = 50
         nrPSFs = 5
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
@@ -116,9 +116,9 @@ end
     end
 
     @testset "Convolution with reduction" begin
-        Ny = 101
-        Nx = 100
-        Nz = 100
+        Ny = 51
+        Nx = 50
+        Nz = 50
         nrPSFs = 5
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
@@ -135,10 +135,11 @@ end
     @testset "Convolution with x-y-shifted delta peaks is identity" begin
         nrPSFs = 5
         rank = nrPSFs - 1
-        Ny = 101
-        Nx = 100
-        Nz = 100
-        shifts = rand(-50:50, (3, nrPSFs))
+        Ny = 51
+        Nx = 50
+        Nz = 50
+        shiftrange = max(Ny, Nx, Nz) ÷ 3
+        shifts = rand((-shiftrange):shiftrange, (3, nrPSFs))
         shifts[:, size(shifts)[2] ÷ 2 + 1] .= 0
         # Only shift in x-y-plane. z shifts are tested later
         shifts[3, :] .= 0
@@ -159,10 +160,11 @@ end
     @testset "Convolution with non-varying PSF is normal convolution" begin
         nrPSFs = 5
         rank = nrPSFs - 1
-        Ny = 101
-        Nx = 100
-        Nz = 100
-        shifts = rand(-30:30, (3, nrPSFs))
+        Ny = 51
+        Nx = 50
+        Nz = 50
+        shiftrange = max(Ny, Nx, Nz) ÷ 4
+        shifts = rand((-shiftrange):shiftrange, (3, nrPSFs))
         shifts[:, size(shifts)[2] ÷ 2 + 1] .= 0
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
         center = Int.([Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1])
