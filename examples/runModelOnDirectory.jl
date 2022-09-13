@@ -17,7 +17,8 @@ function _load(path; key="gt")
 end
 
 function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize)
-    @simd for sourcefile in sourcefiles
+    p = Progress(length(sourcefiles))
+    for sourcefile in sourcefiles
         img_path = joinpath(sourcedir, sourcefile)
         destination_path = joinpath(destinationdir, sourcefile)
         img = reverse(load(img_path); dims=1)
@@ -27,14 +28,15 @@ function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, news
         mi, ma = extrema(sim)
         _map_to_zero_one!(sim, mi, ma)
         save(destination_path, colorview(Gray, reverse(sim; dims=1)))
-        println(img_path)
+        ProgressMeter.next!(p; showvalues=[(:image, img_path)])
     end
 end
 
 function iterate_over_volumes(
     sourcedir, destinationdir, sourcefiles, model, newsize; key="gt"
 )
-    @showprogress for sourcefile in sourcefiles
+    p = Progress(length(sourcefiles))
+    for sourcefile in sourcefiles
         vol_path = joinpath(sourcedir, sourcefile)
         destination_path = joinpath(destinationdir, sourcefile)
         try
@@ -48,6 +50,7 @@ function iterate_over_volumes(
             rm(vol_path)
             continue
         end
+        ProgressMeter.next!(p; showvalues=[(:volume, vol_path)])
     end
 end
 
