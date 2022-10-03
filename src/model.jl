@@ -113,8 +113,8 @@ function generateModel(
     end
 
     Ns = size(comps)[1:(ND - 1)]
-    #= TODO: Normalization of h  and weights_interp
-        - PSFs at every location should have a sum of 1 (?)
+    #= Normalization of h  and weights_interp
+        - PSFs at every location should have a sum of 1 -> normalize_weights
         - comps is normalized along the rank dimension according to L2 norm=#
     # Save normalized weights for later maybe
     matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
