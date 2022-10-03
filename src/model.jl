@@ -31,9 +31,8 @@ function createForwardmodel(
             N = N,
             reduce = reduce
 
-            function forward(x; pad_value=zero(eltype(x)))
-                buf_padded_x .= padND(x, ndims(H) - 1; pad_value=pad_value)
-                save_image("buf_padded_x.png", buf_padded_x)
+            function forward(x)
+                buf_padded_x .= padND(x, ndims(H) - 1)
                 for r in 1:size(padded_weights)[end]
                     buf_weighted_x .= selectdim(padded_weights, N, r) .* buf_padded_x
                     mul!(X, plan, buf_weighted_x)
@@ -43,19 +42,14 @@ function createForwardmodel(
                         Y .+= X .* selectdim(H, N, r)
                     end
                 end
-                save_image("Y.png", abs2.(Y))
                 mul!(buf_irfft_Y, inv_plan, Y)
                 FFTW.ifftshift!(buf_ifftshift_y, buf_irfft_Y)
-                save_image("y.png", buf_ifftshift_y)
                 if reduce
                     return dropdims(
                         sum(unpad(buf_ifftshift_y, unpadded_size...); dims=3); dims=3
                     )
                 else
-                    println("Unpadding in forward model")
-                    unpadded = unpad(buf_ifftshift_y, unpadded_size...)
-                    save_image("unpadded.png", unpadded)
-                    return unpadded
+                    return unpad(buf_ifftshift_y, unpadded_size...)
                 end
             end
         end
