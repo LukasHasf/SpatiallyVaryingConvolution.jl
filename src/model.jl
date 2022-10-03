@@ -127,17 +127,7 @@ function generateModel(
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H, padded_weights, tuple(Ns...); reduce=my_reduce
     )
-    summed_weights = sum(abs2, padded_weights; dims=3)
-    mi, ma = extrema(summed_weights[:, :, 1])
-    save("summed_weights_1.png", _map_to_zero_one!(summed_weights[:, :, 1], mi , ma))
-    flatfield_sim = model(flatfield)
-    save_image("flatfield_sim.png", flatfield_sim)
-    svc_model = let flatfield_sim = flatfield_sim, model = model
-        function svc_model(x)
-            return model(x) #./ flatfield_sim
-        end
-    end
-    return svc_model
+    return model
 end
 
 function generateModel(
