@@ -122,7 +122,6 @@ function generateModel(
     h = comps
 
     # padded values
-
     H = rfft(padND(h, ND - 1), 1:(ND - 1))
     padded_weights = padND(weights_interp_normalized, ND - 1)
     model = SpatiallyVaryingConvolution.createForwardmodel(
