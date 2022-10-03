@@ -124,7 +124,7 @@ function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
     points = T.(hcat([coo_s[i] for i in 1:size(si, 1)]...)')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r in 1:rnk
-        itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:, r])
+        itp = ScatteredInterpolation.interpolate(itp_methods[end], points, weights[:, r])
         interpolated = evaluate(itp, gridPoints)
         if length(shape) == 2
             interpolated = reshape(interpolated, new_shape...)'

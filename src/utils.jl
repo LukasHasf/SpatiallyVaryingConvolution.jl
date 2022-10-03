@@ -33,8 +33,8 @@ end
 
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
-function padND(x, n)
-    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
+function padND(x, n; pad_value=zero(eltype(x)))
+    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=pad_value)
 end
 
 function lower_index(N)
@@ -49,7 +49,8 @@ function unpad(x, Ns...)
     low_inds = [lower_index(N) for N in Ns]
     upp_inds = [upper_index(N) for N in Ns]
     selection = [low_inds[i]:upp_inds[i] for i in eachindex(Ns)]
-    return x[selection...]
+    x = x[selection...]
+    return x
 end
 
 function linshift!(

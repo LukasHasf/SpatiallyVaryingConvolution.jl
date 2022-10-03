@@ -1,3 +1,4 @@
+using Images: save
 """    createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
@@ -29,8 +30,9 @@ function createForwardmodel(
             N = N,
             reduce = reduce
 
-            function forward(x)
-                buf_padded_x .= padND(x, ndims(H) - 1)
+            function forward(x; pad_value=zero(eltype(x)))
+                buf_padded_x .= padND(x, ndims(H) - 1; pad_value=pad_value)
+                save_image("buf_padded_x.png", buf_padded_x)
                 for r in 1:size(padded_weights)[end]
                     buf_weighted_x .= selectdim(padded_weights, N, r) .* buf_padded_x
                     mul!(X, plan, buf_weighted_x)
@@ -40,19 +42,58 @@ function createForwardmodel(
                         Y .+= X .* selectdim(H, N, r)
                     end
                 end
+                save_image("Y.png", abs2.(Y))
                 mul!(buf_irfft_Y, inv_plan, Y)
                 FFTW.ifftshift!(buf_ifftshift_y, buf_irfft_Y)
+                save_image("y.png", buf_ifftshift_y)
                 if reduce
                     return dropdims(
                         sum(unpad(buf_ifftshift_y, unpadded_size...); dims=3); dims=3
                     )
                 else
-                    return unpad(buf_ifftshift_y, unpadded_size...)
+                    println("Unpadding in forward model")
+                    unpadded = unpad(buf_ifftshift_y, unpadded_size...)
+                    save_image("unpadded.png", unpadded)
+                    return unpadded
                 end
             end
         end
     return forward
 end
+
+function normalize_weights(weights, comps)
+    println("Normalizing weights")
+    weights = Float16.(weights)
+    comps = Float16.(comps)
+    weightmap = ones(eltype(weights), size(comps)[1:(end-1)])
+    local_psf_sum = zero(eltype(weightmap))
+    @simd for i in CartesianIndices(size(weightmap))
+        local_psf_sum = zero(eltype(weightmap))
+        @inbounds local_weights = view( weights, i.I...,:)
+        for x in 1:size(comps)[end]
+            @inbounds local_psf_sum += sum(view(comps, :, :, x) .* local_weights[x])
+        end
+        print("\r $i: $local_psf_sum \r")
+        @inbounds weightmap[i.I...] = local_psf_sum
+    end
+    return Float64.(weights ./ weightmap)
+end
+
+function _map_to_zero_one!(x, min_x, max_x)
+    if min_x == max_x
+        return x
+    end
+    a = copy(x)
+    a .-= min_x
+    a .*= inv(max_x - min_x)
+    return a
+end
+
+function save_image(title, arr)
+    mi, ma = extrema(arr)
+    save(title, _map_to_zero_one!(arr, mi, ma))
+end
+
 
 """
     generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false)
@@ -97,6 +138,7 @@ function generateModel(
     #= TODO: Normalization of h  and weights_interp
         - PSFs at every location should have a sum of 1 (?)
         - comps is normalized along the rank dimension according to L2 norm=#
+    weights_interp = normalize_weights(weights_interp, comps)
     h = comps
 
     # padded values
@@ -108,10 +150,14 @@ function generateModel(
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H, padded_weights, tuple(Ns...); reduce=my_reduce
     )
+    summed_weights = sum(abs2, padded_weights; dims=3)
+    mi, ma = extrema(summed_weights[:, :, 1])
+    save("summed_weights_1.png", _map_to_zero_one!(summed_weights[:, :, 1], mi , ma))
     flatfield_sim = model(flatfield)
+    save_image("flatfield_sim.png", flatfield_sim)
     svc_model = let flatfield_sim = flatfield_sim, model = model
         function svc_model(x)
-            return model(x) ./ flatfield_sim
+            return model(x) #./ flatfield_sim
         end
     end
     return svc_model

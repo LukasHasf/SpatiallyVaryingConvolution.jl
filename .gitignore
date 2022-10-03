@@ -1,2 +1,11 @@
 .JuliaFormatter.toml
 examples/debug.jl
+examples/buf_padded_x.png
+examples/summed_weights_1.png
+examples/padded_weights_1.png
+examples/unpadded.png
+examples/Y.png
+examples/y.png
+examples/flatfield_sim_full.png
+examples/flatfield_sim.png
+examples/flatfield.png

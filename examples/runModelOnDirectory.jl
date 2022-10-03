@@ -4,6 +4,9 @@ using MAT
 using ProgressMeter
 
 function _map_to_zero_one!(x, min_x, max_x)
+    if min_x == max_x
+        return x
+    end
     x .-= min_x
     return x .*= inv(max_x - min_x)
 end
@@ -19,6 +22,9 @@ end
 function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize)
     p = Progress(length(sourcefiles))
     for sourcefile in sourcefiles
+        if isdir(joinpath(sourcedir, sourcefile))
+            continue
+        end
         img_path = joinpath(sourcedir, sourcefile)
         destination_path = joinpath(destinationdir, sourcefile)
         img = reverse(load(img_path); dims=1)
@@ -26,6 +32,7 @@ function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, news
         img = Float64.(Gray.(img))
         sim = model(img)
         mi, ma = extrema(sim)
+        println(mi, ma)
         _map_to_zero_one!(sim, mi, ma)
         save(destination_path, colorview(Gray, reverse(sim; dims=1)))
         ProgressMeter.next!(p; showvalues=[(:image, img_path)])
