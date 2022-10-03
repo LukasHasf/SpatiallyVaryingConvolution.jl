@@ -33,8 +33,8 @@ end
 
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
-function padND(x, n; pad_value=zero(eltype(x)))
-    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=pad_value)
+function padND(x, n)
+    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
 function lower_index(N)
