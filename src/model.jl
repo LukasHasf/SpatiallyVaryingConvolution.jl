@@ -56,6 +56,10 @@ function createForwardmodel(
     return forward
 end
 
+"""    normalize_weights(weights, comps)
+
+Normalize the `weights ` such that the PSF constructed  from the weighted `comps` always sum to `1`.
+"""
 function normalize_weights(weights, comps)
     @info "Normalizing weights"
     comp_sums = [sum(comps[:, :, i]) for i in 1:size(comps)[end]]
