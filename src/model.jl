@@ -116,6 +116,7 @@ function generateModel(
     #= Normalization of h  and weights_interp
         - PSFs at every location should have a sum of 1 -> normalize_weights
         - comps is normalized along the rank dimension according to L2 norm=#
+    weights_interp_normalized = normalize_weights(weights_interp, comps)
     # Save normalized weights for later maybe
     matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
     h = comps
@@ -123,9 +124,7 @@ function generateModel(
     # padded values
 
     H = rfft(padND(h, ND - 1), 1:(ND - 1))
-    flatfield = similar(psfs, Ns...)
-    fill!(flatfield, one(eltype(flatfield)))
-    padded_weights = padND(weights_interp, ND - 1)
+    padded_weights = padND(weights_interp_normalized, ND - 1)
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H, padded_weights, tuple(Ns...); reduce=my_reduce
     )
