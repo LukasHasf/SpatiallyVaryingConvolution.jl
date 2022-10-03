@@ -31,9 +31,7 @@ function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, news
         img = imresize(img, newsize)
         img = Float64.(Gray.(img))
         sim = model(img)
-        mi, ma = extrema(sim)
-        println(mi, ma)
-        _map_to_zero_one!(sim, mi, ma)
+        _map_to_zero_one!(sim, extrema(sim)...)
         save(destination_path, colorview(Gray, reverse(sim; dims=1)))
         ProgressMeter.next!(p; showvalues=[(:image, img_path)])
     end
