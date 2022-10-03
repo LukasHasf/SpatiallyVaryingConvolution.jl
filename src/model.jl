@@ -1,4 +1,5 @@
 using Images: save
+using MAT: matwrite
 """    createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
@@ -138,7 +139,8 @@ function generateModel(
     #= TODO: Normalization of h  and weights_interp
         - PSFs at every location should have a sum of 1 (?)
         - comps is normalized along the rank dimension according to L2 norm=#
-    weights_interp = normalize_weights(weights_interp, comps)
+    # Save normalized weights for later maybe
+    matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
     h = comps
 
     # padded values
