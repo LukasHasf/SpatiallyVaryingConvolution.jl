@@ -122,7 +122,7 @@ function generateModel(
         - comps is normalized along the rank dimension according to L2 norm=#
     weights_interp_normalized = normalize_weights(weights_interp, comps)
     # Save normalized weights for later maybe
-    matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
+    # matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
     h = comps
 
     # padded values
