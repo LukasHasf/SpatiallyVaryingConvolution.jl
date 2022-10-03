@@ -80,22 +80,6 @@ function normalize_weights(weights, comps)
     return Float64.(weights ./ weightmap)
 end
 
-function _map_to_zero_one!(x, min_x, max_x)
-    if min_x == max_x
-        return x
-    end
-    a = copy(x)
-    a .-= min_x
-    a .*= inv(max_x - min_x)
-    return a
-end
-
-function save_image(title, arr)
-    mi, ma = extrema(arr)
-    save(title, _map_to_zero_one!(arr, mi, ma))
-end
-
-
 """
     generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false)
 
