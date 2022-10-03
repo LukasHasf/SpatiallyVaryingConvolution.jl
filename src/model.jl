@@ -63,19 +63,18 @@ function createForwardmodel(
 end
 
 function normalize_weights(weights, comps)
-    println("Normalizing weights")
-    weights = Float16.(weights)
-    comps = Float16.(comps)
+    @info "Normalizing weights"
+    comp_sums = [sum(comps[:, :, i]) for i in 1:size(comps)[end]]
+    weights = Float32.(weights)
+    comps = Float32.(comps)
     weightmap = ones(eltype(weights), size(comps)[1:(end-1)])
     local_psf_sum = zero(eltype(weightmap))
-    @simd for i in CartesianIndices(size(weightmap))
-        local_psf_sum = zero(eltype(weightmap))
-        @inbounds local_weights = view( weights, i.I...,:)
-        for x in 1:size(comps)[end]
-            @inbounds local_psf_sum += sum(view(comps, :, :, x) .* local_weights[x])
-        end
+    local_weights = view(weights, first(CartesianIndices(weights)).I..., :)
+    @inbounds @fastmath @simd for i in CartesianIndices(size(weightmap))
+        local_weights = view(weights, i.I..., :)
+        local_psf_sum = comp_sums' * local_weights
         print("\r $i: $local_psf_sum \r")
-        @inbounds weightmap[i.I...] = local_psf_sum
+        weightmap[i.I...] = local_psf_sum
     end
     return Float64.(weights ./ weightmap)
 end
