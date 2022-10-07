@@ -58,23 +58,23 @@ end
 
 """    normalize_weights(weights, comps)
 
-Normalize the `weights ` such that the PSF constructed  from the weighted `comps` always sum to `1`.
+Normalize the `weights` such that the PSF constructed  from the weighted `comps` always sum to `1`.
+
+Size of `weights` and `comps` should be `(Ny, Nx[, Nz], nr_comps)`.
 """
-function normalize_weights(weights, comps)
+function normalize_weights(weights::AbstractArray{T}, comps::AbstractArray) where {T}
     @info "Normalizing weights"
-    comp_sums = [sum(comps[:, :, i]) for i in 1:size(comps)[end]]
-    weights = Float32.(weights)
-    comps = Float32.(comps)
-    weightmap = ones(eltype(weights), size(comps)[1:(end-1)])
-    local_psf_sum = zero(eltype(weightmap))
-    local_weights = view(weights, first(CartesianIndices(weights)).I..., :)
-    @inbounds @fastmath @simd for i in CartesianIndices(size(weightmap))
+    s_weightmap = size(comps)[1:(end-1)]
+    comp_sums = [sum(c) for c in eachslice(comps; dims=ndims(comps))]
+    weightmap = similar(weights, s_weightmap)
+    local_psf_sum = zero(T)
+    local_weights = view(weights, first(CartesianIndices(s_weightmap)).I..., :)
+    @inbounds @fastmath @simd for i in CartesianIndices(s_weightmap)
         local_weights = view(weights, i.I..., :)
         local_psf_sum = comp_sums' * local_weights
-        print("\r $i: $local_psf_sum \r")
         weightmap[i.I...] = local_psf_sum
     end
-    return Float64.(weights ./ weightmap)
+    return weights ./ weightmap
 end
 
 """
