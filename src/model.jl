@@ -32,7 +32,7 @@ function createForwardmodel(
             reduce = reduce
 
             function forward(x)
-                buf_padded_x .= padND(x, ndims(H) - 1)
+                buf_padded_x .= pad_nd(x, ndims(H) - 1)
                 for r in 1:size(padded_weights)[end]
                     buf_weighted_x .= selectdim(padded_weights, N, r) .* buf_padded_x
                     mul!(X, plan, buf_weighted_x)
@@ -87,7 +87,7 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
-function generateModel(
+function generate_model(
     psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false
 ) where {T,N}
     if ref_image_index == -1
@@ -126,17 +126,17 @@ function generateModel(
     h = comps
 
     # padded values
-    H = rfft(padND(h, ND - 1), 1:(ND - 1))
-    padded_weights = padND(weights_interp_normalized, ND - 1)
+    H = rfft(pad_nd(h, ND - 1), 1:(ND - 1))
+    padded_weights = pad_nd(weights_interp_normalized, ND - 1)
     model = SpatiallyVaryingConvolution.createForwardmodel(
         H, padded_weights, tuple(Ns...); reduce=my_reduce
     )
     return model
 end
 
-function generateModel(
+function generate_model(
     psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false
 )
-    psfs = readPSFs(psfs_path, psf_name)
-    return generateModel(psfs, rank, ref_image_index; reduce=reduce)
+    psfs = read_psfs(psfs_path, psf_name)
+    return generate_model(psfs, rank, ref_image_index; reduce=reduce)
 end

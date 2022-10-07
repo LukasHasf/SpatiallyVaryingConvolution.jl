@@ -1,9 +1,9 @@
 @testset "Test 2D model" begin
     function convolve(x, y)
         Ny, Nx = size(x)
-        mask = findall(SpatiallyVaryingConvolution.padND(ones(Float64, Ny, Nx), 2) .== 1)
-        x = SpatiallyVaryingConvolution.padND(x, 2)
-        y = SpatiallyVaryingConvolution.padND(y, 2)
+        mask = findall(SpatiallyVaryingConvolution.pad_nd(ones(Float64, Ny, Nx), 2) .== 1)
+        x = SpatiallyVaryingConvolution.pad_nd(x, 2)
+        y = SpatiallyVaryingConvolution.pad_nd(y, 2)
         output = ifftshift(real.(ifft(fft(x) .* fft(y))))[mask]
         output = reshape(output, Ny, Nx)
         return output ./ maximum(output)
@@ -15,7 +15,7 @@
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, nrPSFs)
         psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, :] .= 1
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
@@ -36,7 +36,7 @@
         for shift_index in 1:nrPSFs
             psfs[(center .+ shifts[:, shift_index])..., shift_index] = one(Float64)
         end
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = rand(Float64, Ny, Nx)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
@@ -76,7 +76,7 @@
                 shift_index,
             ] = one(Float64) / 4
         end
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = zeros(Float64, Ny, Nx)
         input_image[Ny ÷ 2 + 1, Nx ÷ 2 + 1] = 1.0
         sim_image = model(input_image)
@@ -90,10 +90,10 @@ end
     function convolve(x, y)
         Ny, Nx, Nz = size(x)
         mask = findall(
-            SpatiallyVaryingConvolution.padND(ones(Float64, Ny, Nx, Nz), 3) .== 1
+            SpatiallyVaryingConvolution.pad_nd(ones(Float64, Ny, Nx, Nz), 3) .== 1
         )
-        x = SpatiallyVaryingConvolution.padND(x, 3)
-        y = SpatiallyVaryingConvolution.padND(y, 3)
+        x = SpatiallyVaryingConvolution.pad_nd(x, 3)
+        y = SpatiallyVaryingConvolution.pad_nd(y, 3)
         output = ifftshift(real.(ifft(fft(x) .* fft(y))))[mask]
         output = reshape(output, Ny, Nx, Nz)
         return output ./ maximum(output)
@@ -106,7 +106,7 @@ end
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
         psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1, :] .= 1
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
@@ -123,7 +123,7 @@ end
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
         psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1, :] .= 1
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank; reduce=true)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank; reduce=true)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
@@ -148,7 +148,7 @@ end
         for shift_index in 1:nrPSFs
             psfs[(center .+ shifts[:, shift_index])..., shift_index] = one(Float64)
         end
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
@@ -194,7 +194,7 @@ end
                 shift_index,
             ] = one(Float64) / 4
         end
-        model = SpatiallyVaryingConvolution.generateModel(psfs, rank)
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank)
         input_image = zeros(Float64, Ny, Nx, Nz)
         input_image[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1] = 1.0
         sim_image = model(input_image)

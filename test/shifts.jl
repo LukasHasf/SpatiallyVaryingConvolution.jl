@@ -38,7 +38,7 @@
         in_shifts = rand(-20:20, (2, nrPSFs))
         in_shifts[:, size(in_shifts)[2] ÷ 2 + 1] .= 0
         Ny, Nx = 40, 40
-        padded_psf = padND(rand(Float64, Ny, Nx), 2)
+        padded_psf = pad_nd(rand(Float64, Ny, Nx), 2)
         psfs = Array{Float32,3}(undef, Ny, Nx, nrPSFs)
         for i in 1:nrPSFs
             psfs[:, :, i] .= unpad(circshift(padded_psf, -in_shifts[:, i]), Ny, Nx)
@@ -52,7 +52,7 @@
         in_shifts = rand(-20:20, (3, nrPSFs))
         in_shifts[:, size(in_shifts)[2] ÷ 2 + 1] .= 0
         Ny, Nx, Nz = 40, 40, 40
-        padded_psf = padND(rand(Float64, Ny, Nx, Nz), 3)
+        padded_psf = pad_nd(rand(Float64, Ny, Nx, Nz), 3)
         psfs = Array{Float32,4}(undef, Ny, Nx, Nz, nrPSFs)
         for i in 1:nrPSFs
             psfs[:, :, :, i] .= unpad(circshift(padded_psf, -in_shifts[:, i]), Ny, Nx, Nz)

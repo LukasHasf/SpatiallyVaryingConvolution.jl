@@ -62,7 +62,7 @@ end
 function run_forwardmodel(
     sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4
 )
-    model = generateModel(psfpath, psfname, rank, ref_image_index)
+    model = generate_model(psfpath, psfname, rank, ref_image_index)
     sourcefiles = amount == -1 ? readdir(sourcedir) : readdir(sourcedir)[1:amount]
     newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
     isdir(destinationdir) || mkpath(destinationdir)

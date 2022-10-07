@@ -1,9 +1,9 @@
 using MAT: matopen
 using HDF5: h5open
-export readPSFs, padND, unpad
-export linshift!
+export read_psfs, pad_nd, unpad
+export _linshift!
 """    
-    readPSFs(path::String, key::String)
+    read_psfs(path::String, key::String)
 
 Read the PSFs stored in file `path` accessible as field `key`. 
 Supports MAT and HDF5 file format. 
@@ -17,7 +17,7 @@ Supports MAT and HDF5 file format.
  julia> readPSFs("myPSFs.h5", "myPSFsDataset")
  ```
 """
-function readPSFs(path::String, key::String)
+function read_psfs(path::String, key::String)
     if occursin(".mat", path)
         file = matopen(path)
     elseif occursin(".h5", path)
@@ -29,11 +29,11 @@ function readPSFs(path::String, key::String)
     end
 end
 
-"""    padND(x, n)
+"""    pad_nd(x, n)
 
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
-function padND(x, n)
+function pad_nd(x, n)
     return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
@@ -53,7 +53,7 @@ function unpad(x, Ns...)
     return x
 end
 
-function linshift!(
+function _linshift!(
     dest::AbstractArray{T,N},
     src::AbstractArray{T,N},
     shifts::AbstractArray{F,1};
