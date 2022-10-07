@@ -65,8 +65,8 @@ Remove the padding from an array `x` that originally had size `Ns` and was padde
 along each dimension.
 """
 function unpad(x, Ns...)
-    low_inds = [lower_index(N) for N in Ns]
-    upp_inds = [upper_index(N) for N in Ns]
+    low_inds = lower_index.(Ns)
+    upp_inds = upper_index.(Ns)
     selection = [low_inds[i]:upp_inds[i] for i in eachindex(Ns)]
     x = x[selection...]
     return x
