@@ -91,4 +91,24 @@ end
         _linshift!(B, A, [-1, -1])
         @test B == [6 7 8 0; 10 11 12 0; 14 15 16 0; 0 0 0 0]
     end
+
+    @testset "normalize_weights" begin
+        Ny = 51
+        Nx = 50
+        nr_comps = 5
+        weights = rand(Ny, Nx, nr_comps)
+        comps = rand(Ny, Nx, nr_comps)
+        weights_norm = normalize_weights(weights, comps)
+        is_normalized = Matrix{Bool}(undef, Ny, Nx)
+        for x in 1:Nx
+            for y in 1:Ny
+                psf = zeros(Ny, Nx)
+                for c in 1:nr_comps
+                    psf .+= weights_norm[y,x,c] .* comps[:,:,c]
+                end
+                is_normalized[y,x] = sum(psf) ≈ one(eltype(psf))
+            end
+        end
+        @test all(is_normalized)
+    end
 end
