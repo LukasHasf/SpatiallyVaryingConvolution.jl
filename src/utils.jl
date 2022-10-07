@@ -37,14 +37,33 @@ function pad_nd(x, n)
     return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
+"""    lower_index(N)
+
+Give the index of where the original data starts in an array that was
+padded to twice its size along a dimension which originally had length `N`.
+
+Utility function for `unpad`.
+"""
 function lower_index(N)
     return Bool(N % 2) ? (N + 3) ÷ 2 : (N + 2) ÷ 2
 end
 
+"""    upper_index(N)
+
+Give the index of where the original data ends in an array that was
+padded to twice its size along a dimension which originally had length `N`.
+
+Utility function for `unpad`.
+"""
 function upper_index(N)
     return Bool(N % 2) ? 3 * N ÷ 2 + 1 : 3 * N ÷ 2
 end
 
+"""    unpad(x, Ns...)
+
+Remove the padding from an array `x` that originally had size `Ns` and was padded to twice its size
+along each dimension.
+"""
 function unpad(x, Ns...)
     low_inds = [lower_index(N) for N in Ns]
     upp_inds = [upper_index(N) for N in Ns]
@@ -53,6 +72,12 @@ function unpad(x, Ns...)
     return x
 end
 
+"""    _linshift!(dest::AbstractArray{T,N}, src::AbstractArray{T,N}, shifts::AbstractArray{F,1}; filler=zero(T))
+
+Shift source array `src` according to array of `N`-dimensional tuples `shifts` and save the result into `dest`.
+The shifting is not circular, so values that get shifted out of bounds are lost. Values coming in from the other
+side will be the value given for `filler`.
+"""
 function _linshift!(
     dest::AbstractArray{T,N},
     src::AbstractArray{T,N},
