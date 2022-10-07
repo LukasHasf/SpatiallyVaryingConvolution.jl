@@ -2,6 +2,7 @@ using MAT: matopen
 using HDF5: h5open
 export read_psfs, pad_nd, unpad
 export _linshift!
+export normalize_weights
 """    
     read_psfs(path::String, key::String)
 
@@ -114,4 +115,26 @@ function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) wh
     plan = plan_rfft(buf_weighted_x; flags=FFTW.MEASURE)
     inv_plan = inv(plan)
     return Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan
+end
+
+
+"""    normalize_weights(weights, comps)
+
+Normalize the `weights` such that the PSF constructed  from the weighted `comps` always sum to `1`.
+
+Size of `weights` and `comps` should be `(Ny, Nx[, Nz], nr_comps)`.
+"""
+function normalize_weights(weights::AbstractArray{T}, comps::AbstractArray) where {T}
+    @info "Normalizing weights"
+    s_weightmap = size(comps)[1:(end-1)]
+    comp_sums = [sum(c) for c in eachslice(comps; dims=ndims(comps))]
+    weightmap = similar(weights, s_weightmap)
+    local_psf_sum = zero(T)
+    local_weights = view(weights, first(CartesianIndices(s_weightmap)).I..., :)
+    @inbounds @fastmath @simd for i in CartesianIndices(s_weightmap)
+        local_weights = view(weights, i.I..., :)
+        local_psf_sum = comp_sums' * local_weights
+        weightmap[i.I...] = local_psf_sum
+    end
+    return weights ./ weightmap
 end
