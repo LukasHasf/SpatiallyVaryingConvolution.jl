@@ -125,7 +125,6 @@ Normalize the `weights` such that the PSF constructed  from the weighted `comps`
 Size of `weights` and `comps` should be `(Ny, Nx[, Nz], nr_comps)`.
 """
 function normalize_weights(weights::AbstractArray{T}, comps::AbstractArray) where {T}
-    @info "Normalizing weights"
     s_weightmap = size(comps)[1:(end-1)]
     comp_sums = [sum(c) for c in eachslice(comps; dims=ndims(comps))]
     weightmap = similar(weights, s_weightmap)
