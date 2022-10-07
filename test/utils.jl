@@ -14,31 +14,31 @@ end
     @testset "Test padding/unpadding" begin
         Ny, Nx = 100, 101
         x = rand(Float64, Ny, Nx)
-        @test unpad(padND(x, 2), Ny, Nx) == x
+        @test unpad(pad_nd(x, 2), Ny, Nx) == x
 
         Ny, Nx = 101, 100
         x = rand(Float64, Ny, Nx)
-        @test unpad(padND(x, 2), Ny, Nx) == x
+        @test unpad(pad_nd(x, 2), Ny, Nx) == x
 
-        @test size(padND(x, 2)) == 2 .* size(x)
+        @test size(pad_nd(x, 2)) == 2 .* size(x)
 
         Nz = 10
         x = rand(Float64, Ny, Nx, Nz)
-        @test size(padND(x, 2)) == ((2 .* size(x)[1:2])..., Nz)
+        @test size(pad_nd(x, 2)) == ((2 .* size(x)[1:2])..., Nz)
 
         Ny, Nx, Nz = 100, 101, 40
         x = rand(Float64, Ny, Nx, Nz)
-        @test unpad(padND(x, 3), Ny, Nx, Nz) == x
+        @test unpad(pad_nd(x, 3), Ny, Nx, Nz) == x
 
         Ny, Nx, Nz = 101, 100, 39
         x = rand(Float64, Ny, Nx, Nz)
-        @test unpad(padND(x, 3), Ny, Nx, Nz) == x
+        @test unpad(pad_nd(x, 3), Ny, Nx, Nz) == x
 
-        @test size(padND(x, 3)) == 2 .* size(x)
+        @test size(pad_nd(x, 3)) == 2 .* size(x)
 
         nrPSFs = 10
         x = rand(Float64, Ny, Nx, Nz, nrPSFs)
-        @test size(padND(x, 3)) == ((2 .* size(x)[1:3])..., nrPSFs)
+        @test size(pad_nd(x, 3)) == ((2 .* size(x)[1:3])..., nrPSFs)
     end
 
     @testset "Test loading files" begin
@@ -51,9 +51,9 @@ end
         path = mktempdir()
         savePSFs(random_1, joinpath(path, mat_filename), mat_key)
         savePSFs(random_2, joinpath(path, h5_filename), h5_key)
-        @test random_1 == readPSFs(joinpath(path, mat_filename), mat_key)
-        @test random_2 == readPSFs(joinpath(path, h5_filename), h5_key)
-        @test isnothing(readPSFs(joinpath(path, mat_filename), h5_key))
+        @test random_1 == read_psfs(joinpath(path, mat_filename), mat_key)
+        @test random_2 == read_psfs(joinpath(path, h5_filename), h5_key)
+        @test isnothing(read_psfs(joinpath(path, mat_filename), h5_key))
     end
 
     @testset "Test construction wrapper" begin
@@ -64,31 +64,51 @@ end
         path = mktempdir()
         filepath = joinpath(path, filename)
         savePSFs(psfs, filepath, psfs_key)
-        model1 = generateModel(psfs, rank)
-        model2 = generateModel(filepath, psfs_key, rank)
+        model1 = generate_model(psfs, rank)
+        model2 = generate_model(filepath, psfs_key, rank)
         test_img = rand(Float32, 200, 201)
         img1 = model1(test_img)
         img2 = model2(test_img)
         @test img1 ≈ img2
     end
 
-    @testset "linshift!" begin
+    @testset "_linshift!" begin
         A = [1, 2, 3, 4]
         B = similar(A)
-        linshift!(B, A, [0])
+        _linshift!(B, A, [0])
         @test B == A
-        linshift!(B, A, [1])
+        _linshift!(B, A, [1])
         @test B == [0, 1, 2, 3]
-        linshift!(B, A, [-1])
+        _linshift!(B, A, [-1])
         @test B == [2, 3, 4, 0]
 
         A = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
         B = similar(A)
-        linshift!(B, A, [0, 0])
+        _linshift!(B, A, [0, 0])
         @test B == A
-        linshift!(B, A, [1, 1])
+        _linshift!(B, A, [1, 1])
         @test B == [0 0 0 0; 0 1 2 3; 0 5 6 7; 0 9 10 11]
-        linshift!(B, A, [-1, -1])
+        _linshift!(B, A, [-1, -1])
         @test B == [6 7 8 0; 10 11 12 0; 14 15 16 0; 0 0 0 0]
+    end
+
+    @testset "normalize_weights" begin
+        Ny = 51
+        Nx = 50
+        nr_comps = 5
+        weights = rand(Ny, Nx, nr_comps)
+        comps = rand(Ny, Nx, nr_comps)
+        weights_norm = normalize_weights(weights, comps)
+        is_normalized = Matrix{Bool}(undef, Ny, Nx)
+        for x in 1:Nx
+            for y in 1:Ny
+                psf = zeros(Ny, Nx)
+                for c in 1:nr_comps
+                    psf .+= weights_norm[y,x,c] .* comps[:,:,c]
+                end
+                is_normalized[y,x] = sum(psf) ≈ one(eltype(psf))
+            end
+        end
+        @test all(is_normalized)
     end
 end

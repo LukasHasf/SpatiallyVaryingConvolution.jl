@@ -10,6 +10,6 @@ include("utils.jl")
 include("preprocessing.jl")
 include("model.jl")
 
-export generateModel, readPSFs
+export generate_model, read_psfs
 
 end # module

@@ -13,7 +13,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     Ns = size(stack)[1:(end - 1)]
     ps = Ns # Relative centers of all correlations
     M = size(stack)[end]
-    pad_function = x -> padND(x, ND - 1)
+    pad_function = x -> pad_nd(x, ND - 1)
 
     function crossCorr(
         x::AbstractArray{Complex{T}},
@@ -65,7 +65,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     if N == 4 && maximum(abs.(si[3, :])) > zero(eltype(si))
         for ind in good_indices
             selected_stack = selectdim(stack, ND, ind)
-            linshift!(im_reg, selected_stack, si[:, ind])
+            _linshift!(im_reg, selected_stack, si[:, ind])
             selectdim(yi_reg, ND, ind) .= im_reg
         end
     end
@@ -124,7 +124,7 @@ function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
     points = T.(hcat([coo_s[i] for i in 1:size(si, 1)]...)')
     itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r in 1:rnk
-        itp = ScatteredInterpolation.interpolate(itp_methods[1], points, weights[:, r])
+        itp = ScatteredInterpolation.interpolate(itp_methods[end], points, weights[:, r])
         interpolated = evaluate(itp, gridPoints)
         if length(shape) == 2
             interpolated = reshape(interpolated, new_shape...)'
