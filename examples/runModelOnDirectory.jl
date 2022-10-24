@@ -76,4 +76,4 @@ end
 #= run_forwardmodel("../../../training_data/Data/Ground_truth_downsampled/", "../../../training_data/Data/JuliaForwardModel/",
  "../../../training_data/comaPSF.mat", "psfs") 
    run_forwardmodel("../../../training_data/3D/Simulated_Miniscope_3D_training_data/", "../../../training_data/3D/JuliaForwardModel/", 
-   "../../../training_data/3D/comaPSF3D.mat", "psfs")=#
+   "../../../training_data/3D/comaPSF3D_square.mat", "psfs"; rank=8, amount=4000)=#
