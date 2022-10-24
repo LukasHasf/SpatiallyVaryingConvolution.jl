@@ -62,21 +62,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         good_count += 1
     end
 
-    if N == 4 && maximum(abs.(si[3, :])) > zero(eltype(si))
-        for ind in good_indices
-            selected_stack = selectdim(stack, ND, ind)
-            _linshift!(im_reg, selected_stack, si[:, ind])
-            selectdim(yi_reg, ND, ind) .= im_reg
-        end
-    end
-
-    # Populate yi_reg
-    for ind in good_indices
-        circshift!(im_reg, selectdim(stack, ND, ind), si[:, ind])
-        selectdim(yi_reg, ND, ind) .= im_reg
-    end
-
-    return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
+    return _shift_array(stack, si, good_indices), si
 end
 
 """

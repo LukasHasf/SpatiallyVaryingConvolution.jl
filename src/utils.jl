@@ -98,6 +98,38 @@ function _linshift!(
     end
 end
 
+"""    shift_array(arr::AbstractArray{T,N}, shift_indices, good_indices=1:size(shift_indices, 2)) where {T,N}
+
+Shift slices in the input array `arr` according to `shift_indices`, ignoring slices with indices that are not in `good_indices`.
+
+`arr` is expected to store `M` observations (images / volumes) along the last (3rd / 4th) dimension.
+`shift_indices` is expected to store `M` (2 / 3)-dimensional shifts, such that `size(shift_indices)=(N-1, M)`.
+"""
+function _shift_array(arr::AbstractArray{T,N}, shift_indices, good_indices=1:size(shift_indices, 2)) where {T,N}
+    im_reg = similar(arr, size(arr)[1:(end - 1)])
+    output = similar(arr)
+    # Populate output
+    # Iterate over last dimension, thus selecting individual PSF imges / volumes with selectdim
+    # Circshift the PSF in x-y according to shift_indices and save to buffer im_reg
+    # If there exists a z-shift, use linshift instead, so the top of the PSF doesn't wrap around to the bottom
+    # output psf image / volume is set to the shifted PSF
+    if N == 4 && maximum(abs.(shift_indices[3, :])) > zero(eltype(shift_indices))
+        for ind in good_indices
+            selected_stack = selectdim(arr, N, ind)
+            _linshift!(im_reg, selected_stack, shift_indices[:, ind])
+            selectdim(output, N, ind) .= im_reg
+        end
+    else
+        for ind in good_indices
+            circshift!(im_reg, selectdim(arr, N, ind), shift_indices[:, ind])
+            selectdim(output, N, ind) .= im_reg
+        end
+    end
+    # Some slices in the output buffer might have been skipped because of low image quality. 
+    # With good_indices, select only those slices with valid shift indices
+    return collect(selectdim(output, N, good_indices))
+end
+
 function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) where {T,N}
     ND = ndims(H)
     # x is padded in first N-1 dimension to be as big as padded_weights

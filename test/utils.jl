@@ -92,6 +92,65 @@ end
         @test B == [6 7 8 0; 10 11 12 0; 14 15 16 0; 0 0 0 0]
     end
 
+    @testset "_shift_array" begin
+        # Optimal 2D case
+        A = rand(16, 16, 9)
+        shifts = rand(0:16, 2, 9)
+        good_indices = 1:9
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        @test size(A_shifted) == size(A)
+        for (counter, ind) in enumerate(good_indices)
+            @test A_shifted[:, :, counter] == circshift(A[:, :, ind], shifts[:, ind])
+        end
+        # 2D case with bad pictures
+        good_indices = [1,2,3,6,7,8,9]
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        @test size(A_shifted) == (16, 16, 7)
+        for (counter, ind) in enumerate(good_indices)
+            @test A_shifted[:, :, counter] == circshift(A[:, :, ind], shifts[:, ind])
+        end
+
+        # Optimal 3D case, good measurements, only x-y shifts
+        A = rand(16,16,16,9)
+        shifts = rand(0:16, 3, 9)
+        shifts[3, :] .= zero(Int)
+        good_indices = 1:9
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        @test size(A_shifted) == size(A)
+        for (counter, ind) in enumerate(good_indices)
+            @test A_shifted[:, :, :, counter] == circshift(A[:, :, :, ind], shifts[:, ind])
+        end
+
+        # 3D case with bad measurements and only x-y shifts
+        good_indices = [1,2,3,6,7,8,9]
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        @test size(A_shifted) == (16, 16, 16, 7)
+        for (counter, ind) in enumerate(good_indices)
+            @test A_shifted[:, :, :, counter] == circshift(A[:, :, :, ind], shifts[:, ind])
+        end
+
+        # 3D case with z shifts
+        shifts = rand(0:16, 3, 9)
+        good_indices = 1:9
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        B = similar(A[:, :, :, 1])
+        @test size(A_shifted) == size(A)
+        for (counter, ind) in enumerate(good_indices)
+            _linshift!(B, A[:, :, :, ind], shifts[:, ind])
+            @test A_shifted[:, :, :, counter] == B
+        end
+
+        # 3D case with z shifts and bad measurements
+        good_indices = [1,2,3,6,7,8,9]
+        A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
+        B = similar(A[:, :, :, 1])
+        @test size(A_shifted) == (16, 16, 16, 7)
+        for (counter, ind) in enumerate(good_indices)
+            _linshift!(B, A[:, :, :, ind], shifts[:, ind])
+            @test A_shifted[:, :, :, counter] == B
+        end
+    end
+
     @testset "normalize_weights" begin
         Ny = 51
         Nx = 50
