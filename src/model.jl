@@ -73,13 +73,13 @@ function generate_model(
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
-    if isnothing(shifts)
-        ND = ndims(psfs)
-        my_reduce = reduce
+    ND = ndims(psfs)
+    my_reduce = reduce
         if reduce && ND == 3
             @info "reduce is true, but dimensions are 2, so reduce is ignored"
             my_reduce = false
         end
+    if isnothing(shifts)
         psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
             psfs, collect(selectdim(psfs, N, ref_image_index))
         )
