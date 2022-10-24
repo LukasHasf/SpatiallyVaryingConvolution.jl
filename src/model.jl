@@ -67,21 +67,29 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generate_model(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false
+    psfs::AbstractArray{T,N}, rank::Int; ref_image_index::Int=-1, reduce=false, shifts=nothing
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
-    ND = ndims(psfs)
-    my_reduce = reduce
-    if reduce && ND == 3
-        @info "reduce is true, but dimensions are 2, so reduce is ignored"
-        my_reduce = false
+    if isnothing(shifts)
+        ND = ndims(psfs)
+        my_reduce = reduce
+        if reduce && ND == 3
+            @info "reduce is true, but dimensions are 2, so reduce is ignored"
+            my_reduce = false
+        end
+        psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
+            psfs, collect(selectdim(psfs, N, ref_image_index))
+        )
+    else
+        # If shifts are given, we still want to register the PSFs (move them to the same position in the FOV), 
+        # so that we can decompose them. Just ignore the computed shifts.
+        psfs_reg, _ = SpatiallyVaryingConvolution.registerPSFs(
+            psfs, collect(selectdim(psfs, N, ref_image_index))
+        )
     end
-    psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
-        psfs, collect(selectdim(psfs, N, ref_image_index))
-    )
     comps, weights = decompose(psfs_reg, rank)
     if N == 4 && any(shifts[3, :] .!= zero(Int))
         weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts)
@@ -114,8 +122,16 @@ function generate_model(
 end
 
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false
+    psfs_path::String, psf_name::String, rank::Int; ref_image_index::Int=-1, reduce=false
 )
     psfs = read_psfs(psfs_path, psf_name)
-    return generate_model(psfs, rank, ref_image_index; reduce=reduce)
+    return generate_model(psfs, rank; ref_image_index=ref_image_index, reduce=reduce)
+end
+
+function generate_model(
+    psfs_path::String, psf_name::String, shift_name::String, rank::Int; ref_image_index::Int=-1, reduce=false
+)
+    psfs = read_psfs(psfs_path, psf_name)
+    shifts = read_psfs(psfs_path, shift_name)
+    return generate_model(psfs, rank; ref_image_index=ref_image_index, reduce=reduce, shifts=shifts)
 end
