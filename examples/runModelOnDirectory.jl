@@ -59,12 +59,8 @@ function iterate_over_volumes(
     end
 end
 
-function run_forwardmodel(
-    sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4
-)
-    model = generate_model(psfpath, psfname, rank, ref_image_index)
+function run_forwardmodel(model, sourcedir, destinationdir; amount=-1, newsize=(64,64))
     sourcefiles = amount == -1 ? readdir(sourcedir) : readdir(sourcedir)[1:amount]
-    newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
     isdir(destinationdir) || mkpath(destinationdir)
     if length(newsize) == 2
         iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize)
@@ -72,6 +68,23 @@ function run_forwardmodel(
         iterate_over_volumes(sourcedir, destinationdir, sourcefiles, model, newsize)
     end
 end
+
+function run_forwardmodel(
+    sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4
+)
+    model = generate_model(psfpath, psfname, rank; ref_image_index=ref_image_index)
+    newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
+    run_forwardmodel(model, sourcedir, destinationdir; amount=amount, newsize=newsize)
+end
+
+function run_forwardmodel(
+    sourcedir, destinationdir, psfpath, psfname, shiftname; amount=-1, ref_image_index=-1, rank=4
+)
+    model = generate_model(psfpath, psfname, shiftname, rank; ref_image_index=ref_image_index)
+    newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
+    run_forwardmodel(model, sourcedir, destinationdir; amount=amount, newsize=newsize)
+end
+
 
 #= run_forwardmodel("../../../training_data/Data/Ground_truth_downsampled/", "../../../training_data/Data/JuliaForwardModel/",
  "../../../training_data/comaPSF.mat", "psfs") 
