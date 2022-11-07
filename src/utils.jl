@@ -36,7 +36,7 @@ end
 Rescale `x` by `fac` along `dims` using sinc-interpolation.
 """
 function scale_fourier(x, fac; dims=1:ndims(x))
-    new_size = trunc.(Int, (i in dims ? fac * s : s for (i,s) in enumerate(size(x))))
+    new_size = trunc.(Int, (i in dims ? fac * s : s for (i, s) in enumerate(size(x))))
     return resample(x, new_size)
 end
 
@@ -115,7 +115,9 @@ Shift slices in the input array `arr` according to `shift_indices`, ignoring sli
 `arr` is expected to store `M` observations (images / volumes) along the last (3rd / 4th) dimension.
 `shift_indices` is expected to store `M` (2 / 3)-dimensional shifts, such that `size(shift_indices)=(N-1, M)`.
 """
-function _shift_array(arr::AbstractArray{T,N}, shift_indices, good_indices=1:size(shift_indices, 2)) where {T,N}
+function _shift_array(
+    arr::AbstractArray{T,N}, shift_indices, good_indices=1:size(shift_indices, 2)
+) where {T,N}
     im_reg = similar(arr, size(arr)[1:(end - 1)])
     output = similar(arr)
     # Populate output
@@ -140,7 +142,9 @@ function _shift_array(arr::AbstractArray{T,N}, shift_indices, good_indices=1:siz
     return collect(selectdim(output, N, good_indices))
 end
 
-function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights, scaling) where {T,N}
+function _prepare_buffers_forward(
+    H::AbstractArray{T,N}, size_padded_weights, scaling
+) where {T,N}
     ND = ndims(H)
     scaling = isnothing(scaling) ? 1 : scaling
     # x is padded in first N-1 dimension to be as big as padded_weights
@@ -160,7 +164,6 @@ function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights, sc
     return Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan
 end
 
-
 """    normalize_weights(weights, comps)
 
 Normalize the `weights` such that the PSF constructed  from the weighted `comps` always sum to `1`.
@@ -168,7 +171,7 @@ Normalize the `weights` such that the PSF constructed  from the weighted `comps`
 Size of `weights` and `comps` should be `(Ny, Nx[, Nz], nr_comps)`.
 """
 function normalize_weights(weights::AbstractArray{T}, comps::AbstractArray) where {T}
-    s_weightmap = size(comps)[1:(end-1)]
+    s_weightmap = size(comps)[1:(end - 1)]
     comp_sums = [sum(c) for c in eachslice(comps; dims=ndims(comps))]
     weightmap = similar(weights, s_weightmap)
     local_psf_sum = zero(T)

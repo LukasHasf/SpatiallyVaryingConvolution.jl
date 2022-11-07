@@ -103,7 +103,7 @@ end
             @test A_shifted[:, :, counter] == circshift(A[:, :, ind], shifts[:, ind])
         end
         # 2D case with bad pictures
-        good_indices = [1,2,3,6,7,8,9]
+        good_indices = [1, 2, 3, 6, 7, 8, 9]
         A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
         @test size(A_shifted) == (16, 16, 7)
         for (counter, ind) in enumerate(good_indices)
@@ -111,7 +111,7 @@ end
         end
 
         # Optimal 3D case, good measurements, only x-y shifts
-        A = rand(16,16,16,9)
+        A = rand(16, 16, 16, 9)
         shifts = rand(0:16, 3, 9)
         shifts[3, :] .= zero(Int)
         good_indices = 1:9
@@ -122,7 +122,7 @@ end
         end
 
         # 3D case with bad measurements and only x-y shifts
-        good_indices = [1,2,3,6,7,8,9]
+        good_indices = [1, 2, 3, 6, 7, 8, 9]
         A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
         @test size(A_shifted) == (16, 16, 16, 7)
         for (counter, ind) in enumerate(good_indices)
@@ -141,7 +141,7 @@ end
         end
 
         # 3D case with z shifts and bad measurements
-        good_indices = [1,2,3,6,7,8,9]
+        good_indices = [1, 2, 3, 6, 7, 8, 9]
         A_shifted = SpatiallyVaryingConvolution._shift_array(A, shifts, good_indices)
         B = similar(A[:, :, :, 1])
         @test size(A_shifted) == (16, 16, 16, 7)
@@ -163,9 +163,9 @@ end
             for y in 1:Ny
                 psf = zeros(Ny, Nx)
                 for c in 1:nr_comps
-                    psf .+= weights_norm[y,x,c] .* comps[:,:,c]
+                    psf .+= weights_norm[y, x, c] .* comps[:, :, c]
                 end
-                is_normalized[y,x] = sum(psf) ≈ one(eltype(psf))
+                is_normalized[y, x] = sum(psf) ≈ one(eltype(psf))
             end
         end
         @test all(is_normalized)
