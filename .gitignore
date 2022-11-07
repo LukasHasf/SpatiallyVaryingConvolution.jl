@@ -10,3 +10,4 @@ examples/flatfield_sim_full.png
 examples/flatfield_sim.png
 examples/flatfield.png
 examples/weightmap.png
+*.mat
