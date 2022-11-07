@@ -1,6 +1,7 @@
 using MAT: matopen
 using HDF5: h5open
 export read_psfs, pad_nd, unpad
+export scale_fourier
 export _linshift!
 export normalize_weights
 """    
@@ -30,12 +31,17 @@ function read_psfs(path::String, key::String)
     end
 end
 
+function scale_fourier(x, fac; dims=1:ndims(x))
+    new_size = trunc.(Int, (i in dims ? fac * s : s for (i,s) in enumerate(size(x))))
+    return resample(x, new_size)
+end
+
 """    pad_nd(x, n)
 
 Pad `x` along the first `n` dimensions with `0` to twice its size.
 """
-function pad_nd(x, n)
-    return select_region(x; new_size=2 .* size(x)[1:n], pad_value=zero(eltype(x)))
+function pad_nd(x, n; fac=2)
+    return select_region(x; new_size=fac .* size(x)[1:n], pad_value=zero(eltype(x)))
 end
 
 """    lower_index(N)
@@ -130,8 +136,9 @@ function _shift_array(arr::AbstractArray{T,N}, shift_indices, good_indices=1:siz
     return collect(selectdim(output, N, good_indices))
 end
 
-function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) where {T,N}
+function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights, scaling) where {T,N}
     ND = ndims(H)
+    scaling = isnothing(scaling) ? 1 : scaling
     # x is padded in first N-1 dimension to be as big as padded_weights
     size_x = size_padded_weights[1:(ND - 1)]
     # Y aggregates the FT of the convolution of the weighted volume and the PSF components
