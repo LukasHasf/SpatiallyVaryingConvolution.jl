@@ -41,6 +41,23 @@ end
         @test size(pad_nd(x, 3)) == ((2 .* size(x)[1:3])..., nrPSFs)
     end
 
+    @testset "fourier_scale" begin
+        x = rand(Float32, 10, 10)
+        x̂ = scale_fourier(x, 1)
+        @test eltype(x) == eltype(x̂)
+        @test x == x̂
+        x̂ = scale_fourier(x, 2)
+        @test eltype(x) == eltype(x̂)
+        @test size(x) .* 2 == size(x̂)
+        x̂ = scale_fourier(scale_fourier(x, 2), 1/2)
+        @test eltype(x) == eltype(x̂)
+        @test x ≈ x̂
+        x̂ = scale_fourier(x, 2, 1)
+        @test eltype(x) == eltype(x̂)
+        f = [2, 1]
+        @test size(x̂) == (f*s for s in size(x))
+    end
+
     @testset "Test loading files" begin
         random_1 = rand(Float32, 10, 10)
         random_2 = rand(Float32, 10, 10)
