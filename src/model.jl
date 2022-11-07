@@ -17,7 +17,6 @@ function createForwardmodel(
     Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
         H, size(padded_weights), scaling
     )
-    println(scaling)
     if isnothing(scaling)
         forward =
             let Y = Y,
@@ -169,7 +168,7 @@ function generate_model(
     # padded values
     padded_weights = pad_nd(weights_interp_normalized, ND - 1)
     # By setting scaling to nothing instead of 1, a few padding and resampling operations can be saved in the forward model
-    scaling = scaling == one(scaling) ? nothing : scaling
+    scaling = scaling == 1 ? nothing : scaling
     if !isnothing(scaling)
         h = scale_fourier(h, scaling; dims=1:(ndims(h) - 1))
         padded_weights = pad_nd(weights_interp_normalized, ND - 1; fac=2 * scaling)
