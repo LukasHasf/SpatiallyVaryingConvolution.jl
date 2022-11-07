@@ -1,12 +1,14 @@
 using Images: save
 using MAT: matwrite
-"""    createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size) where {T, N}
+"""    createForwardmodel(H::AbstractArray{T, N}, padded_weights, unpadded_size; reduce=false, scaling=nothing) where {T, N}
 
 Return a function that computes a spatially varying convolution defined by kernels `H` and
 their padded weights `padded_weights`. The convolution accepts a three-dimensional padded
 volume and returns the convolved volume.
 
 The dimension of `H` and `padded_weights` should correspond to `(Ny, Nx[, Nz], rank)`
+
+`scaling` is the factor by which `H` is bigger than the input images to the forward model.
 """
 function createForwardmodel(
     H::AbstractArray{T,N}, padded_weights, unpadded_size; reduce=false, scaling=nothing
@@ -98,7 +100,7 @@ function createForwardmodel(
 end
 
 """
-    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false)
+    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false, shifts=nothing, scaling=nothing)
 
 Construct the forward model using the PSFs in `psfs` employing an interpolation
  of the first `rank` components calculated from a SVD. If `reduce==true`, a 3D volume will be
@@ -106,6 +108,10 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
 
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
+
+ `shifts` are relative PSF shifts that need to be given in case they can't be calculated from just the PSFs.
+
+ `scaling` is a convenience for the simulation of `N x N` microlens arrays and should correspond to `N`.
 """
 function generate_model(
     psfs::AbstractArray{T,N}, rank::Int; ref_image_index::Int=-1, reduce=false, shifts=nothing, scaling=nothing
@@ -157,6 +163,8 @@ function generate_model(
 
     # padded values
     padded_weights = pad_nd(weights_interp_normalized, ND - 1)
+    # By setting scaling to nothing instead of 1, a few padding and resampling operations can be saved in the forward model
+    scaling = scaling==one(scaling) ? nothing : scaling
     if !isnothing(scaling)
         h = scale_fourier(h, scaling; dims=1:(ndims(h)-1))
         padded_weights = pad_nd(weights_interp_normalized, ND - 1; fac=2*scaling)

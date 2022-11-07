@@ -31,6 +31,10 @@ function read_psfs(path::String, key::String)
     end
 end
 
+"""    scale_fourier(x, fac; dims=1:ndims(x))
+
+Rescale `x` by `fac` along `dims` using sinc-interpolation.
+"""
 function scale_fourier(x, fac; dims=1:ndims(x))
     new_size = trunc.(Int, (i in dims ? fac * s : s for (i,s) in enumerate(size(x))))
     return resample(x, new_size)
