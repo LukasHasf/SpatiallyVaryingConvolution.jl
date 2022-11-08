@@ -4,6 +4,7 @@ authors = ["LukasHasf <lukas.hassfurth@uni-jena.de>"]
 version = "0.1.0"
 
 [deps]
+AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FourierTools = "b18b359b-aebc-45ac-a139-9c0ccbb2871e"

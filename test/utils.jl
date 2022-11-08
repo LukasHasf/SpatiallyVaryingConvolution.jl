@@ -58,6 +58,17 @@ end
         @test collect(size(x̂)) == collect((f[i]*s for (i,s) in enumerate(size(x))))
     end
 
+    @testset "reshift_comps" begin
+        x = rand(Float32, 10, 10, 10)
+        shifts = rand(-5:5, 2, 10)
+        c = reshift_comps(x, shifts)
+        @test size(c) == size(x)
+        @test eltype(c) == eltype(x)
+        for i in 1:size(x)[end]
+            @test c[:, :, i] == circshift(x[:, :, i], shifts[:, i])
+        end
+    end
+
     @testset "Test loading files" begin
         random_1 = rand(Float32, 10, 10)
         random_2 = rand(Float32, 10, 10)
