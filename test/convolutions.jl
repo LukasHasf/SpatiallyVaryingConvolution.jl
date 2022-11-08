@@ -24,6 +24,25 @@
         @test sim_image ≈ input_image
     end
 
+    @testset "Convolution with custom shifted delta peak" begin
+        Ny = 501
+        Nx = 500
+        nrPSFs = 2
+        rank = nrPSFs - 1
+        psfs = zeros(Float64, Ny, Nx, nrPSFs)
+        shift = [10 0; 10 0]
+        psfs[Ny ÷ 2 + 1 +  shift[1, 1], Nx ÷ 2 + 1 + shift[2, 1], 1] = 1
+        psfs[Ny ÷ 2 + 1 +  shift[1, 2], Nx ÷ 2 + 1 + shift[2, 2], 2] = 1
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank; shifts=shift)
+        input_image = rand(Float64, Ny, Nx)
+        input_image ./= maximum(input_image)
+        sim_image = model(input_image)
+        sim_image ./= maximum(input_image)
+        buf = similar(sim_image)
+        _linshift!(buf, input_image, shift[:, 1]; filler=zero(Float64))
+        @test sim_image ≈ buf
+    end
+
     @testset "Convolution with shifted delta peaks is identity" begin
         nrPSFs = 9
         rank = nrPSFs - 1
