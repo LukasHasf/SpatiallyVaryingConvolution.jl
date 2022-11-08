@@ -17,7 +17,6 @@ function createForwardmodel(
     Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan = _prepare_buffers_forward(
         H, size(padded_weights), scaling
     )
-    println(scaling)
     if isnothing(scaling)
         forward =
             let Y = Y,
@@ -99,6 +98,15 @@ function createForwardmodel(
     return forward
 end
 
+function reshift_comps(comps::AbstractArray{T, N}, shifts) where {T,N}
+    comps = copy(comps)
+    for i in 1:size(comps, N)
+        c = selectdim(comps, N, i)
+        selectdim(comps, N, i) .= circshift(c, shifts[:, i])
+    end
+    return comps
+end
+
 """
     generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false, shifts=nothing, scaling=nothing)
 
@@ -156,7 +164,6 @@ function generate_model(
             weights_interp = permutedims(weights_interp, [1, 2, 4, 3])
         end
     end
-
     Ns = size(comps)[1:(ND - 1)]
     #= Normalization of h  and weights_interp
         - PSFs at every location should have a sum of 1 -> normalize_weights
@@ -164,12 +171,12 @@ function generate_model(
     weights_interp_normalized = normalize_weights(weights_interp, comps)
     # Save normalized weights for later maybe
     # matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
-    h = comps
+    h = given_psfs ? reshift_comps(comps, shifts) : comps
 
     # padded values
     padded_weights = pad_nd(weights_interp_normalized, ND - 1)
     # By setting scaling to nothing instead of 1, a few padding and resampling operations can be saved in the forward model
-    scaling = scaling == one(scaling) ? nothing : scaling
+    scaling = scaling == 1 ? nothing : scaling
     if !isnothing(scaling)
         h = scale_fourier(h, scaling; dims=1:(ndims(h) - 1))
         padded_weights = pad_nd(weights_interp_normalized, ND - 1; fac=2 * scaling)
