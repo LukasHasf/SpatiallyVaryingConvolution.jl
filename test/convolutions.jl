@@ -64,6 +64,25 @@
         @test sim_image ≈ input_image
     end
 
+    @testset "Scaled convolution" begin
+        nrPSFs = 9
+        rank = nrPSFs - 1
+        Ny = 501
+        Nx = 500
+        psfs = zeros(Ny, Nx, nrPSFs)
+        psfs[Ny÷2+1, Nx÷2+1,:] .= 1
+        scaling = 2
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank; scaling=scaling)
+        input_image = rand(Float64, Ny, Nx)
+        input_image ./= maximum(input_image)
+        sim_image = model(input_image)
+        psfs_scaled = scale_fourier(psfs[:, :, 1], scaling)
+        ii_pad = pad_nd(input_image, ndims(input_image); fac=scaling)
+        con = fftshift(irfft(rfft(ii_pad) .* rfft(psfs_scaled), size(psfs_scaled, 1)))
+        con = scale_fourier(con, 1/scaling)
+        @test sum(abs, con .- sim_image) / (Ny * Nx) < 0.01
+    end
+
     @testset "Convolution with non-varying PSF is normal convolution" begin
         nrPSFs = 9
         rank = nrPSFs - 1
