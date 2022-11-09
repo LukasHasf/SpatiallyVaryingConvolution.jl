@@ -100,6 +100,43 @@ end
         @test img1 ≈ img2
     end
 
+    @testset "Test handling of reduce keyword" begin
+        psfs = rand(Float32, 200, 201, 9)
+        rank = 8
+        @test_logs (:info,) generate_model(psfs, rank; reduce=true)
+        model1 = generate_model(psfs, rank; reduce=true)
+        model2 = generate_model(psfs, rank; reduce=false)
+        test_img = rand(Float32, 200, 201)
+        img1 = model1(test_img)
+        img2 = model2(test_img)
+        @test img1 ≈ img2
+    end
+
+    @testset "Test construction wrapper with shifts" begin
+        Ny = 501
+        Nx = 500
+        nrPSFs = 2
+        rank = nrPSFs - 1
+        psfs = zeros(Float64, Ny, Nx, nrPSFs)
+        shift = [10 0; 10 0]
+        psfs[Ny ÷ 2 + 1 +  shift[1, 1], Nx ÷ 2 + 1 + shift[2, 1], 1] = 1
+        psfs[Ny ÷ 2 + 1 +  shift[1, 2], Nx ÷ 2 + 1 + shift[2, 2], 2] = 1
+        dir = mktempdir()
+        psfs_filename = "psfs.mat"
+        psfs_path = joinpath(dir, psfs_filename)
+        psfs_name = "psfs"
+        shift_name = "shifts"
+        matwrite(psfs_path, Dict(psfs_name=>psfs, shift_name=>shift))
+        model = SpatiallyVaryingConvolution.generate_model(psfs_path, psfs_name, shift_name, rank)
+        input_image = rand(Float64, Ny, Nx)
+        input_image ./= maximum(input_image)
+        sim_image = model(input_image)
+        sim_image ./= maximum(input_image)
+        buf = similar(sim_image)
+        _linshift!(buf, input_image, shift[:, 1]; filler=zero(Float64))
+        @test sim_image ≈ buf
+    end
+
     @testset "_linshift!" begin
         A = [1, 2, 3, 4]
         B = similar(A)
