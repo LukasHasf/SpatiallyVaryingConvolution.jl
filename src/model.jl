@@ -102,7 +102,7 @@ function reshift_comps(comps::AbstractArray{T, N}, shifts) where {T,N}
     comps = copy(comps)
     for i in 1:size(comps, N)
         c = selectdim(comps, N, i)
-        selectdim(comps, N, i) .= circshift(c, shifts[:, i])
+        selectdim(comps, N, i) .= shift(c, shifts[:, i])
     end
     return comps
 end
@@ -191,10 +191,10 @@ function generate_model(
 end
 
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int; ref_image_index::Int=-1, reduce=false
+    psfs_path::String, psf_name::String, rank::Int; ref_image_index::Int=-1, reduce=false, scaling=nothing
 )
     psfs = read_psfs(psfs_path, psf_name)
-    return generate_model(psfs, rank; ref_image_index=ref_image_index, reduce=reduce)
+    return generate_model(psfs, rank; ref_image_index=ref_image_index, reduce=reduce, scaling=scaling)
 end
 
 function generate_model(
