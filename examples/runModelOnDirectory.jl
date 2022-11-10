@@ -70,9 +70,9 @@ function run_forwardmodel(model, sourcedir, destinationdir; amount=-1, newsize=(
 end
 
 function run_forwardmodel(
-    sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4
+    sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4, scaling=nothing
 )
-    model = generate_model(psfpath, psfname, rank; ref_image_index=ref_image_index)
+    model = generate_model(psfpath, psfname, rank; ref_image_index=ref_image_index, scaling=scaling)
     newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
     return run_forwardmodel(
         model, sourcedir, destinationdir; amount=amount, newsize=newsize
@@ -88,9 +88,10 @@ function run_forwardmodel(
     amount=-1,
     ref_image_index=-1,
     rank=4,
+    scaling=nothing
 )
     model = generate_model(
-        psfpath, psfname, shiftname, rank; ref_image_index=ref_image_index
+        psfpath, psfname, shiftname, rank; ref_image_index=ref_image_index, scaling=scaling
     )
     newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
     return run_forwardmodel(
