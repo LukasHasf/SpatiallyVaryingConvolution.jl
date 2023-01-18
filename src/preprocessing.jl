@@ -101,11 +101,13 @@ function decompose(yi_reg::AbstractArray{T,N}, rnk) where {T,N}
 end
 
 """
-    interpolate_weights(weights, shape, si)
+    interpolate_weights(weights, shape, si; itp_method=Shepard())
 
-Interpolate `weights` defined at positions `si` onto a grid of size `shape`.
+Interpolate `weights` defined at positions `si` onto a grid of size `shape` using `itp_method` as interpolation function.
+
+`itp_method` has to be a function provided by `ScatteredInterpolation.jl`.
 """
-function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
+function interpolateWeights(weights::AbstractArray{T,N}, shape, si; itp_method=Shepard()) where {T,N}
     @assert length(shape) == size(si, 1)
     rnk = size(weights)[2]
 
@@ -122,9 +124,9 @@ function interpolateWeights(weights::AbstractArray{T,N}, shape, si) where {T,N}
     new_shape = [shape[xyz_indices[i]] for i in 1:length(shape)]
     weights_interp = similar(weights, shape..., rnk)
     points = T.(hcat([coo_s[i] for i in 1:size(si, 1)]...)')
-    itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
+    # itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r in 1:rnk
-        itp = ScatteredInterpolation.interpolate(itp_methods[end], points, weights[:, r])
+        itp = ScatteredInterpolation.interpolate(itp_method, points, weights[:, r])
         interpolated = evaluate(itp, gridPoints)
         if length(shape) == 2
             interpolated = reshape(interpolated, new_shape...)'

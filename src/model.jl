@@ -67,7 +67,7 @@ Construct the forward model using the PSFs in `psfs` employing an interpolation
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generate_model(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false
+    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard()
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
@@ -84,9 +84,9 @@ function generate_model(
     )
     comps, weights = decompose(psfs_reg, rank)
     if N == 4 && any(shifts[3, :] .!= zero(Int))
-        weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts)
+        weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts; itp_method=itp_method)
     else
-        weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :])
+        weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :]; itp_method=itp_method)
         if N == 4
             # Repeat x-y interpolated weights Nz times 
             weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
@@ -114,8 +114,8 @@ function generate_model(
 end
 
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false
+    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard()
 )
     psfs = read_psfs(psfs_path, psf_name)
-    return generate_model(psfs, rank, ref_image_index; reduce=reduce)
+    return generate_model(psfs, rank, ref_image_index; reduce=reduce, itp_method=itp_method)
 end
