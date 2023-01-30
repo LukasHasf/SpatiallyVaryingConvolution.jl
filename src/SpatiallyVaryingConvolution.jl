@@ -5,6 +5,7 @@ using FourierTools
 using FFTW
 using Arpack, LinearAlgebra
 using ScatteredInterpolation
+using NaturalNeighborInterpolation
 
 include("utils.jl")
 include("preprocessing.jl")

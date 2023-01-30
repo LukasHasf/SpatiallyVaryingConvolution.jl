@@ -126,8 +126,15 @@ function interpolateWeights(weights::AbstractArray{T,N}, shape, si; itp_method=S
     points = T.(hcat([coo_s[i] for i in 1:size(si, 1)]...)')
     # itp_methods = [NearestNeighbor(), Multiquadratic(), Shepard()]
     for r in 1:rnk
-        itp = ScatteredInterpolation.interpolate(itp_method, points, weights[:, r])
-        interpolated = evaluate(itp, gridPoints)
+        interpolated = nothing
+        if itp_method isa AbstractString
+            # This means: Natural Neighbor Interpolation
+            itp = NaturalNeighborInterpolation.NaturalNeighborsInterpolator(points[1, :], points[2, :], weights[:, r])
+            interpolated = NaturalNeighborInterpolation.interpolate(itp, gridPoints[1,:], gridPoints[2, :])
+        else
+            itp = ScatteredInterpolation.interpolate(itp_method, points, weights[:, r])
+            interpolated = evaluate(itp, gridPoints)
+        end
         if length(shape) == 2
             interpolated = reshape(interpolated, new_shape...)'
         elseif length(shape) == 3

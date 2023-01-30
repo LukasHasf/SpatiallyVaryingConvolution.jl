@@ -12,6 +12,7 @@ Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 NDTools = "98581153-e998-4eef-8d0d-5ec2c052313d"
+NaturalNeighborInterpolation = "2eee901e-40a3-4fba-a4f6-2122815f15f2"
 ScatteredInterpolation = "3f865c0f-6dca-5f4d-999b-29fe1e7e3c92"
 
 [extras]
