@@ -27,6 +27,8 @@ function read_psfs(path::String, key::String)
     if haskey(file, key)
         psfs = read(file, key)
         return psfs
+    else
+        @warn "Key $key not found in $(path)!"
     end
 end
 
