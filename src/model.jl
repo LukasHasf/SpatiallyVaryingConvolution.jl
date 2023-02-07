@@ -57,17 +57,21 @@ function createForwardmodel(
 end
 
 """
-    generate_model(psfs::AbstractArray{T,3}, rank::Int[, ref_image_index::Int]; reduce=false)
+    generate_model(psfs::AbstractArray{T,N}, rank::Int[, ref_image_index::Int]; reduce=false, itp_method=Shepard(), positions=nothing) where {T,N}
 
 Construct the forward model using the PSFs in `psfs` employing an interpolation
  of the first `rank` components calculated from a SVD. If `reduce==true`, a 3D volume will be
  mapped to a 2D image by summation over the z-axis.
 
+The interpolation of the coefficients of the eigenimages is done using the `itp_method`.
+
+If the PSF locations differ from their center of mass, `positions` can be supplied as an array of size `(N-1, size(psfs,N))`.
+
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generate_model(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard()
+    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
@@ -79,9 +83,15 @@ function generate_model(
         @info "reduce is true, but dimensions are 2, so reduce is ignored"
         my_reduce = false
     end
-    psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
+    if isnothing(positions)
+        psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
         psfs, collect(selectdim(psfs, N, ref_image_index))
-    )
+        )
+    else
+        center_pos = size(psfs)[1:(end-1)] .÷2 .+ 1
+        shifts = center_pos .- positions
+        psfs_reg = shift_psfs(psfs, shifts)
+    end
     comps, weights = decompose(psfs_reg, rank)
     if N == 4 && any(shifts[3, :] .!= zero(Int))
         weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts; itp_method=itp_method)
@@ -113,9 +123,18 @@ function generate_model(
     return model
 end
 
+"""    generate_model(psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing)
+
+Alternatively, a path to a mat or hdf5 file `psfs_path` can be given, where the PSFs array can be accessed with the key `psf_name`.
+
+`positions` can be given as an array or as a string. If `positions` is a String, it will be used as a key to load the positions array from `psfs_path`.
+"""
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard()
+    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing
 )
     psfs = read_psfs(psfs_path, psf_name)
-    return generate_model(psfs, rank, ref_image_index; reduce=reduce, itp_method=itp_method)
+    if positions isa AbstractString
+        positions = read_psfs(psfs_path, positions)
+    end
+    return generate_model(psfs, rank, ref_image_index; reduce=reduce, itp_method=itp_method, positions=positions)
 end

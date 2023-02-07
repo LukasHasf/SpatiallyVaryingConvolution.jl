@@ -53,7 +53,9 @@ end
         savePSFs(random_2, joinpath(path, h5_filename), h5_key)
         @test random_1 == read_psfs(joinpath(path, mat_filename), mat_key)
         @test random_2 == read_psfs(joinpath(path, h5_filename), h5_key)
+        @info "The following warnings are part of testing"
         @test isnothing(read_psfs(joinpath(path, mat_filename), h5_key))
+        @test_logs (:warn,"Key $(h5_key) not found in $(joinpath(path, mat_filename))!") read_psfs(joinpath(path, mat_filename), h5_key)
     end
 
     @testset "Test construction wrapper" begin
@@ -70,6 +72,24 @@ end
         img1 = model1(test_img)
         img2 = model2(test_img)
         @test img1 ≈ img2
+        # Test if loading with string tries to get the positions from the PSF file. If it failf, it displays a warning
+        positions_key = "positions"
+        @test_logs (:warn, "Key $positions_key not found in $(filepath)!") generate_model(filepath, psfs_key, rank; positions=positions_key)
+        # Now try the model with user supplied positions
+        # There are three ways to construct a model with user supplied poitiosn, so check for equivalence of these ways
+        positions = rand(1:200, 2, 9)
+        path = mktempdir()
+        filepath = joinpath(path, filename)
+        matwrite(filepath, Dict(psfs_key=>psfs, positions_key=>positions))
+        model1 = generate_model(psfs, rank; positions=positions)
+        model2 = generate_model(filepath, psfs_key, rank; positions=positions_key)
+        model3 = generate_model(filepath, psfs_key, rank; positions=positions)
+        test_img = rand(Float32, 200, 201)
+        img1 = model1(test_img)
+        img2 = model2(test_img)
+        img3 = model3(test_img)
+        @test img1 ≈ img2
+        @test img2 ≈ img3
     end
 
     @testset "_linshift!" begin

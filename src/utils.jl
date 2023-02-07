@@ -27,6 +27,8 @@ function read_psfs(path::String, key::String)
     if haskey(file, key)
         psfs = read(file, key)
         return psfs
+    else
+        @warn "Key $key not found in $(path)!"
     end
 end
 
@@ -96,6 +98,36 @@ function _linshift!(
         end
         dest[ind.I...] = value
     end
+end
+
+
+"""    shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+
+Shift each measurement image/volume in `stack` by the x-y-z-shifts given in `shift_indices` (`size(shift_indices)=(N, size(stack, N))`).
+
+Only the measurements indexed by `good_indices` are considered.
+"""
+function shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+    # Output destination
+    yi_reg = similar(stack)
+    # Temporary shifting destination
+    im_reg = similar(stack, size(stack)[1:(end - 1)])
+    #Populate yi_reg
+    # In 3D, with z-shift, do a linear shift (without wrap-around)
+    if N == 4 && maximum(abs.(shift_indices[3, :])) > zero(eltype(shift_indices))
+        for ind in good_indices
+            selected_stack = selectdim(stack, N, ind)
+            _linshift!(im_reg, selected_stack, shift_indices[:, ind])
+            selectdim(yi_reg, N, ind) .= im_reg
+        end
+    else
+        # Else, a circshift should be good enough
+        for ind in good_indices
+            circshift!(im_reg, selectdim(stack, N, ind), shift_indices[:, ind])
+            selectdim(yi_reg, N, ind) .= im_reg
+        end
+    end
+    return yi_reg
 end
 
 function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) where {T,N}

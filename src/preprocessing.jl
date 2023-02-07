@@ -27,7 +27,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         return sqrt(sum(abs2.(x)))
     end
 
-    yi_reg = similar(stack, size(stack)...)
     stack_dct = copy(stack)
     ref_norm = norm(ref_im) # norm of ref_im
 
@@ -45,7 +44,6 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
     plan = plan_rfft(dummy_for_plan; flags=FFTW.MEASURE)
     iplan = inv(plan)
     pre_comp_ref_im = conj.(plan * (pad_function(ref_im)))
-    im_reg = similar(stack_dct, Ns...)
     ft_stack = similar(stack_dct, Complex{T}, (2 * Ns[1]) ÷ 2 + 1, (2 .* Ns[2:end])...)
     padded_stack_dct = pad_function(stack_dct)
     for m in 1:M
@@ -61,21 +59,7 @@ function registerPSFs(stack::AbstractArray{T,N}, ref_im) where {T,N}
         push!(good_indices, m)
         good_count += 1
     end
-
-    if N == 4 && maximum(abs.(si[3, :])) > zero(eltype(si))
-        for ind in good_indices
-            selected_stack = selectdim(stack, ND, ind)
-            _linshift!(im_reg, selected_stack, si[:, ind])
-            selectdim(yi_reg, ND, ind) .= im_reg
-        end
-    end
-
-    # Populate yi_reg
-    for ind in good_indices
-        circshift!(im_reg, selectdim(stack, ND, ind), si[:, ind])
-        selectdim(yi_reg, ND, ind) .= im_reg
-    end
-
+    yi_reg = shift_psfs(stack, si, good_indices)
     return collect(selectdim(yi_reg, ND, 1:(good_count - 1))), si
 end
 
