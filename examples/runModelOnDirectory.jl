@@ -32,6 +32,13 @@ function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, news
         img = imresize(img, newsize .÷ scaling)
         img = Float64.(Gray.(img))
         img = select_region(img; new_size=newsize, pad_value=zero(Float64))
+        if scaling != 1
+            destination_path = joinpath(destinationdir, "forward", sourcefile)
+            gt_path = joinpath(destinationdir, "groundtruth", sourcefile)
+            gt = copy(img)
+            _map_to_zero_one!(gt, extrema(gt)...)
+            save(gt_path, colorview(Gray, reverse(gt; dims=1)))
+        end
         sim = model(img)
         _map_to_zero_one!(sim, extrema(sim)...)
         save(destination_path, colorview(Gray, reverse(sim; dims=1)))
