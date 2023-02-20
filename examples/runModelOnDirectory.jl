@@ -31,7 +31,7 @@ function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, news
         img = reverse(load(img_path); dims=1)
         img = imresize(img, newsize .÷ scaling)
         img = Float64.(Gray.(img))
-        img = select_region(img; new_size=newsize, pad_value=zero(Float64))
+        img = select_region(img; new_size=newsize, pad_value=1e-2)
         if scaling != 1
             destination_path = joinpath(destinationdir, "forward", sourcefile)
             gt_path = joinpath(destinationdir, "groundtruth", sourcefile)
