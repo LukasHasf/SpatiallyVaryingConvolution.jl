@@ -83,9 +83,14 @@ Images are read from `sourcedir`, convolved, and the output is saved in `destina
 function run_forwardmodel(
     sourcedir, destinationdir, psfpath, psfname; amount=-1, ref_image_index=-1, rank=4, positions=nothing, scaling=1
 )
-    model = generate_model(psfpath, psfname, rank, ref_image_index, positions=positions)
+    psfs = matread(psfpath)[psfname]
+    # For numerical stability, don't have zeros in PSF for FLFM
+    if scaling != 1 && minimum(psfs) == 0
+        psfs[psfs .== 0] .= 1e-7
+    end
+    model = generate_model(psfs, rank, ref_image_index, positions=positions)
     sourcefiles = amount == -1 ? readdir(sourcedir) : readdir(sourcedir)[1:amount]
-    newsize = size(matread(psfpath)[psfname])[1:(end - 1)]
+    newsize = size(psfs)[1:(end - 1)]
     isdir(destinationdir) || mkpath(destinationdir)
     if length(newsize) == 2
         iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize, scaling=scaling)
