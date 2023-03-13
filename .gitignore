@@ -12,3 +12,7 @@ examples/flatfield.png
 examples/weightmap.png
 *.mat
 testing/*
+examples/neurons_forward/*
+out.png
+Cell_with_dye.jpg
+input.png
