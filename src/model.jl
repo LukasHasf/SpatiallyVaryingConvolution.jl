@@ -87,12 +87,14 @@ function generate_model(
         my_reduce = false
     end
     models_collected = []
+    psfs_registration = selectdim(sqrt.(sum(abs2, psfs; dims=channel_dim)), channel_dim, 1)
+    _, shifts = SpatiallyVaryingConvolution.registerPSFs(
+                    psfs_registration, collect(selectdim(psfs_registration, ndims(psfs_registration), ref_image_index))
+                )
     for i in axes(psfs, channel_dim)
         channel_psfs = selectdim(psfs, channel_dim, i)
         if isnothing(positions)
-                psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
-                    channel_psfs, collect(selectdim(channel_psfs, ndims(channel_psfs), ref_image_index))
-                )
+                psfs_reg = shift_psfs(channel_psfs, shifts)
         else
             center_pos = size(channel_psfs)[1:(end-1)] .÷2 .+ 1
             shifts = center_pos .- positions
