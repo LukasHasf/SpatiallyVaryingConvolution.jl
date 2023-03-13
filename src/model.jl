@@ -71,56 +71,78 @@ If the PSF locations differ from their center of mass, `positions` can be suppli
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generate_model(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing
+    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing, channels=false
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
         ref_image_index = size(psfs)[end] ÷ 2 + 1
     end
-    ND = ndims(psfs)
+    spatial_dims = channels ? ndims(psfs) - 2 : ndims(psfs) - 1
+    channel_dim = channels ? ndims(psfs) - 1 : nothing
+    # If no channels, reshape  PSF to have one channel
+    psfs = channels ? psfs : reshape(psfs, size(psfs)[1:spatial_dims]..., 1, size(psfs, ndims(psfs)))
     my_reduce = reduce
-    if reduce && ND == 3
-        @info "reduce is true, but dimensions are 2, so reduce is ignored"
+    if reduce && spatial_dims == 2
+        @info "reduce is true, but spatial dimensions are 2, so reduce is ignored"
         my_reduce = false
     end
-    if isnothing(positions)
-        psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
-        psfs, collect(selectdim(psfs, N, ref_image_index))
+    models_collected = []
+    for i in axes(psfs, channel_dim)
+        channel_psfs = selectdim(psfs, channel_dim, i)
+        if isnothing(positions)
+                psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
+                    channel_psfs, collect(selectdim(channel_psfs, ndims(channel_psfs), ref_image_index))
+                )
+        else
+            center_pos = size(channel_psfs)[1:(end-1)] .÷2 .+ 1
+            shifts = center_pos .- positions
+            psfs_reg = shift_psfs(channel_psfs, shifts)
+        end
+        comps, weights = decompose(psfs_reg, rank)
+        if spatial_dims == 3 && any(shifts[3, :] .!= zero(Int))
+            weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts; itp_method=itp_method)
+        else
+            weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :]; itp_method=itp_method)
+            if spatial_dims == 3
+                # Repeat x-y interpolated weights Nz times 
+                weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
+                # Reshape to (Ny, Nx, Nz, rank)
+                weights_interp = permutedims(weights_interp, [1, 2, 4, 3])
+            end
+        end
+
+        Ns = size(comps)[1:spatial_dims]
+        #= Normalization of h  and weights_interp
+            - PSFs at every location should have a sum of 1 -> normalize_weights
+            - comps is normalized along the rank dimension according to L2 norm=#
+        weights_interp_normalized = normalize_weights(weights_interp, comps)
+        # Save normalized weights for later maybe
+        # matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
+        h = comps
+        # padded values
+        H = rfft(pad_nd(h, spatial_dims), 1:spatial_dims)
+        padded_weights = pad_nd(weights_interp_normalized, spatial_dims)
+        model = SpatiallyVaryingConvolution.createForwardmodel(
+            H, padded_weights, tuple(Ns...); reduce=my_reduce
         )
-    else
-        center_pos = size(psfs)[1:(end-1)] .÷2 .+ 1
-        shifts = center_pos .- positions
-        psfs_reg = shift_psfs(psfs, shifts)
+        push!(models_collected, model)
     end
-    comps, weights = decompose(psfs_reg, rank)
-    if N == 4 && any(shifts[3, :] .!= zero(Int))
-        weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts; itp_method=itp_method)
-    else
-        weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :]; itp_method=itp_method)
-        if N == 4
-            # Repeat x-y interpolated weights Nz times 
-            weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
-            # Reshape to (Ny, Nx, Nz, rank)
-            weights_interp = permutedims(weights_interp, [1, 2, 4, 3])
+
+    if length(models_collected)==1
+        return only(models_collected)
+    end
+
+    forward = let models_collected = models_collected
+        function forward(x)
+            out = similar(x)
+            for i in axes(x, channel_dim)
+                selectdim(out, channel_dim, i) .= models_collected[i](selectdim(x, channel_dim, i))
+            end
+            return out
         end
     end
-
-    Ns = size(comps)[1:(ND - 1)]
-    #= Normalization of h  and weights_interp
-        - PSFs at every location should have a sum of 1 -> normalize_weights
-        - comps is normalized along the rank dimension according to L2 norm=#
-    weights_interp_normalized = normalize_weights(weights_interp, comps)
-    # Save normalized weights for later maybe
-    # matwrite("normalized_weights.mat", Dict("weights"=>weights_interp))
-    h = comps
-
-    # padded values
-    H = rfft(pad_nd(h, ND - 1), 1:(ND - 1))
-    padded_weights = pad_nd(weights_interp_normalized, ND - 1)
-    model = SpatiallyVaryingConvolution.createForwardmodel(
-        H, padded_weights, tuple(Ns...); reduce=my_reduce
-    )
-    return model
+   
+    return forward
 end
 
 """    generate_model(psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing)
@@ -128,13 +150,15 @@ end
 Alternatively, a path to a mat or hdf5 file `psfs_path` can be given, where the PSFs array can be accessed with the key `psf_name`.
 
 `positions` can be given as an array or as a string. If `positions` is a String, it will be used as a key to load the positions array from `psfs_path`.
+
+If `channels==true`, the PSF will be assumed to have multiple channels. The channel dimension should be `ndims(PSF)-1`.
 """
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing
+    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing, channels=false
 )
     psfs = read_psfs(psfs_path, psf_name)
     if positions isa AbstractString
         positions = read_psfs(psfs_path, positions)
     end
-    return generate_model(psfs, rank, ref_image_index; reduce=reduce, itp_method=itp_method, positions=positions)
+    return generate_model(psfs, rank, ref_image_index; reduce=reduce, itp_method=itp_method, positions=positions, channels=channels)
 end
