@@ -20,7 +20,9 @@ function _load(path; key="gt")
     end
 end
 
-function iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize; scaling=1)
+function iterate_over_images(
+    sourcedir, destinationdir, sourcefiles, model, newsize; scaling=1
+)
     p = Progress(length(sourcefiles))
     for sourcefile in sourcefiles
         if isdir(joinpath(sourcedir, sourcefile))
@@ -125,11 +127,13 @@ function run_forwardmodel(
         end
         psfs = imresize(psfs, (newsize..., size(psfs, ndims(psfs))))
     end
-    model = generate_model(psfs, rank, ref_image_index, positions=positions)
+    model = generate_model(psfs, rank, ref_image_index; positions=positions)
     sourcefiles = amount == -1 ? readdir(sourcedir) : readdir(sourcedir)[1:amount]
     isdir(destinationdir) || mkpath(destinationdir)
     if length(newsize) == 2
-        iterate_over_images(sourcedir, destinationdir, sourcefiles, model, newsize, scaling=scaling)
+        iterate_over_images(
+            sourcedir, destinationdir, sourcefiles, model, newsize; scaling=scaling
+        )
     elseif length(newsize) == 3
         iterate_over_volumes(sourcedir, destinationdir, sourcefiles, model, newsize)
     end

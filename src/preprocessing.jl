@@ -91,7 +91,9 @@ Interpolate `weights` defined at positions `si` onto a grid of size `shape` usin
 
 `itp_method` has to be a function provided by `ScatteredInterpolation.jl`.
 """
-function interpolateWeights(weights::AbstractArray{T,N}, shape, si; itp_method=Shepard()) where {T,N}
+function interpolateWeights(
+    weights::AbstractArray{T,N}, shape, si; itp_method=Shepard()
+) where {T,N}
     @assert length(shape) == size(si, 1)
     rnk = size(weights)[2]
 
