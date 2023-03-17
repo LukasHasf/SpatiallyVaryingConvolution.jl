@@ -115,21 +115,27 @@ end
         @test sim_image ≈ input_image
     end
 
-    @testset "Convolution with reduction" begin
+    @testset "Convolution with flfm" begin
         Ny = 51
         Nx = 50
         Nz = 50
         nrPSFs = 5
         rank = nrPSFs - 1
         psfs = zeros(Float64, Ny, Nx, Nz, nrPSFs)
-        psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, Nz ÷ 2 + 1, :] .= 1
-        model = SpatiallyVaryingConvolution.generate_model(psfs, rank; reduce=true)
+        psfs[Ny ÷ 2 + 1, Nx ÷ 2 + 1, :, :] .= 1
+        model = SpatiallyVaryingConvolution.generate_model(psfs, rank; flfm=true)
         input_image = rand(Float64, Ny, Nx, Nz)
         input_image ./= maximum(input_image)
         sim_image = model(input_image)
         sim_image ./= maximum(sim_image)
         @test size(input_image)[1:2] == size(sim_image)
-        @test sim_image ≈ sum(input_image; dims=3) ./ maximum(sum(input_image; dims=3))
+        proper_output = zeros(Ny, Nx, Nz)
+        for z in 1:Nz
+            proper_output[:, :, z] = SpatiallyVaryingConvolution.generate_model(psfs[:, :, z, :], rank)(input_image[:, :, z])
+        end
+        proper_output = dropdims(sum(proper_output; dims=3); dims=3)
+        proper_output ./= maximum(proper_output)
+        @test sim_image ≈ proper_output atol=1e-3
     end
 
     @testset "Convolution with x-y-shifted delta peaks is identity" begin
