@@ -181,7 +181,7 @@ function generate_model(
     h = comps
 
     # padded values
-    if !flfm
+    if !my_flfm
         # In the general case, FT along all spatial dims
         H = rfft(pad_nd(h, ND - 1), 1:(ND - 1))
     else
