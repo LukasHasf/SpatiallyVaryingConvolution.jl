@@ -12,3 +12,8 @@ examples/flatfield.png
 examples/weightmap.png
 *.mat
 testing/*
+diff.png
+input.png
+out.png
+out_proper.png
+test_flfm.jl
