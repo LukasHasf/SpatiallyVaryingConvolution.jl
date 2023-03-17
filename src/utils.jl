@@ -100,14 +100,15 @@ function _linshift!(
     end
 end
 
-
 """    shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
 
 Shift each measurement image/volume in `stack` by the x-y-z-shifts given in `shift_indices` (`size(shift_indices)=(N, size(stack, N))`).
 
 Only the measurements indexed by `good_indices` are considered.
 """
-function shift_psfs(stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)) where {T,N}
+function shift_psfs(
+    stack::AbstractArray{T,N}, shift_indices, good_indices=1:size(stack, N)
+) where {T,N}
     # Output destination
     yi_reg = similar(stack)
     # Temporary shifting destination
@@ -149,7 +150,6 @@ function _prepare_buffers_forward(H::AbstractArray{T,N}, size_padded_weights) wh
     return Y, X, buf_weighted_x, buf_padded_x, buf_irfft_Y, buf_ifftshift_y, plan, inv_plan
 end
 
-
 """    normalize_weights(weights, comps)
 
 Normalize the `weights` such that the PSF constructed  from the weighted `comps` always sum to `1`.
@@ -157,7 +157,7 @@ Normalize the `weights` such that the PSF constructed  from the weighted `comps`
 Size of `weights` and `comps` should be `(Ny, Nx[, Nz], nr_comps)`.
 """
 function normalize_weights(weights::AbstractArray{T}, comps::AbstractArray) where {T}
-    s_weightmap = size(comps)[1:(end-1)]
+    s_weightmap = size(comps)[1:(end - 1)]
     comp_sums = [sum(c) for c in eachslice(comps; dims=ndims(comps))]
     weightmap = similar(weights, s_weightmap)
     local_psf_sum = zero(T)

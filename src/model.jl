@@ -1,9 +1,19 @@
 using Images: save
 using MAT: matwrite
 
-function createForwardmodel_FLFM(Y, X, padded_weights, buf_irfft_Y, buf_ifftshift_y, H, buf_padded_x, buf_weighted_x, unpadded_size)
+function createForwardmodel_FLFM(
+    Y,
+    X,
+    padded_weights,
+    buf_irfft_Y,
+    buf_ifftshift_y,
+    H,
+    buf_padded_x,
+    buf_weighted_x,
+    unpadded_size,
+)
     N = ndims(H)
-    plan = plan_rfft(buf_weighted_x, (1,2); flags=FFTW.MEASURE)
+    plan = plan_rfft(buf_weighted_x, (1, 2); flags=FFTW.MEASURE)
     inv_plan = inv(plan)
     forward =
         let Y = Y,
@@ -33,8 +43,10 @@ function createForwardmodel_FLFM(Y, X, padded_weights, buf_irfft_Y, buf_ifftshif
                     end
                 end
                 mul!(buf_irfft_Y, inv_plan, Y)
-                FFTW.ifftshift!(buf_ifftshift_y, buf_irfft_Y, (1,2))
-                return dropdims(sum(unpad(buf_ifftshift_y, unpadded_size...); dims=3); dims=3)
+                FFTW.ifftshift!(buf_ifftshift_y, buf_irfft_Y, (1, 2))
+                return dropdims(
+                    sum(unpad(buf_ifftshift_y, unpadded_size...); dims=3); dims=3
+                )
             end
         end
     return forward
@@ -56,7 +68,17 @@ function createForwardmodel(
         H, size(padded_weights)
     )
     if flfm
-        return createForwardmodel_FLFM(Y, X, padded_weights, buf_irfft_Y, buf_ifftshift_y, H, buf_padded_x, buf_weighted_x, unpadded_size)
+        return createForwardmodel_FLFM(
+            Y,
+            X,
+            padded_weights,
+            buf_irfft_Y,
+            buf_ifftshift_y,
+            H,
+            buf_padded_x,
+            buf_weighted_x,
+            unpadded_size,
+        )
     end
 
     forward =
@@ -106,7 +128,12 @@ If the PSF locations differ from their center of mass, `positions` can be suppli
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
 """
 function generate_model(
-    psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; flfm=false, itp_method=Shepard(), positions=nothing
+    psfs::AbstractArray{T,N},
+    rank::Int,
+    ref_image_index::Int=-1;
+    flfm=false,
+    itp_method=Shepard(),
+    positions=nothing,
 ) where {T,N}
     if ref_image_index == -1
         # Assume reference image is in the middle
@@ -120,18 +147,22 @@ function generate_model(
     end
     if isnothing(positions)
         psfs_reg, shifts = SpatiallyVaryingConvolution.registerPSFs(
-        psfs, collect(selectdim(psfs, N, ref_image_index))
+            psfs, collect(selectdim(psfs, N, ref_image_index))
         )
     else
-        center_pos = size(psfs)[1:(end-1)] .÷2 .+ 1
+        center_pos = size(psfs)[1:(end - 1)] .÷ 2 .+ 1
         shifts = center_pos .- positions
         psfs_reg = shift_psfs(psfs, shifts)
     end
     comps, weights = decompose(psfs_reg, rank)
     if N == 4 && any(shifts[3, :] .!= zero(Int))
-        weights_interp = interpolateWeights(weights, size(comps)[1:3], shifts; itp_method=itp_method)
+        weights_interp = interpolateWeights(
+            weights, size(comps)[1:3], shifts; itp_method=itp_method
+        )
     else
-        weights_interp = interpolateWeights(weights, size(comps)[1:2], shifts[1:2, :]; itp_method=itp_method)
+        weights_interp = interpolateWeights(
+            weights, size(comps)[1:2], shifts[1:2, :]; itp_method=itp_method
+        )
         if N == 4
             # Repeat x-y interpolated weights Nz times 
             weights_interp = repeat(weights_interp, 1, 1, 1, size(psfs_reg, 3))
@@ -171,11 +202,19 @@ Alternatively, a path to a mat or hdf5 file `psfs_path` can be given, where the 
 `positions` can be given as an array or as a string. If `positions` is a String, it will be used as a key to load the positions array from `psfs_path`.
 """
 function generate_model(
-    psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; flfm=false, itp_method=Shepard(), positions=nothing
+    psfs_path::String,
+    psf_name::String,
+    rank::Int,
+    ref_image_index::Int=-1;
+    flfm=false,
+    itp_method=Shepard(),
+    positions=nothing,
 )
     psfs = read_psfs(psfs_path, psf_name)
     if positions isa AbstractString
         positions = read_psfs(psfs_path, positions)
     end
-    return generate_model(psfs, rank, ref_image_index; flfm=flfm, itp_method=itp_method, positions=positions)
+    return generate_model(
+        psfs, rank, ref_image_index; flfm=flfm, itp_method=itp_method, positions=positions
+    )
 end

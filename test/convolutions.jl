@@ -131,11 +131,15 @@ end
         @test size(input_image)[1:2] == size(sim_image)
         proper_output = zeros(Ny, Nx, Nz)
         for z in 1:Nz
-            proper_output[:, :, z] = SpatiallyVaryingConvolution.generate_model(psfs[:, :, z, :], rank)(input_image[:, :, z])
+            proper_output[:, :, z] = SpatiallyVaryingConvolution.generate_model(
+                psfs[:, :, z, :], rank
+            )(
+                input_image[:, :, z]
+            )
         end
         proper_output = dropdims(sum(proper_output; dims=3); dims=3)
         proper_output ./= maximum(proper_output)
-        @test sim_image ≈ proper_output atol=1e-3
+        @test sim_image ≈ proper_output atol = 1e-3
     end
 
     @testset "Convolution with x-y-shifted delta peaks is identity" begin
