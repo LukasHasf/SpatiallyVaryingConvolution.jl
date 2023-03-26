@@ -57,7 +57,7 @@ function createForwardmodel(
 end
 
 """
-    generate_model(psfs::AbstractArray{T,N}, rank::Int[, ref_image_index::Int]; reduce=false, itp_method=Shepard(), positions=nothing) where {T,N}
+    generate_model(psfs::AbstractArray{T,N}, rank::Int[, ref_image_index::Int]; reduce=false, itp_method=Shepard(), positions=nothing, channels=false) where {T,N}
 
 Construct the forward model using the PSFs in `psfs` employing an interpolation
  of the first `rank` components calculated from a SVD. If `reduce==true`, a 3D volume will be
@@ -69,6 +69,8 @@ If the PSF locations differ from their center of mass, `positions` can be suppli
 
 `ref_image_index` is the index of the reference PSF along dim 3 of `psfs`. 
  Default: `ref_image_index = size(psfs)[end] ÷ 2 + 1`
+
+If `channels==true`, the second to last dimension of `psfs` will be treated as a channel dimension.
 """
 function generate_model(
     psfs::AbstractArray{T,N}, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing, channels=false
@@ -147,7 +149,7 @@ function generate_model(
     return forward
 end
 
-"""    generate_model(psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing)
+"""    generate_model(psfs_path::String, psf_name::String, rank::Int, ref_image_index::Int=-1; reduce=false, itp_method=Shepard(), positions=nothing, channels=false)
 
 Alternatively, a path to a mat or hdf5 file `psfs_path` can be given, where the PSFs array can be accessed with the key `psf_name`.
 
